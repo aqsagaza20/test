@@ -1,14 +1,18 @@
 // ============================================================
-//  MedTerm Service Worker v5.0
-//  7-day cache · Progress reporting · Cache-first strategy · Local images support
+//  MedTerm Service Worker v6.0 - النسخة الكاملة
+//  تحميل جميع الموارد · تخزين 7 أيام · تشغيل كامل بدون إنترنت
 // ============================================================
 
-const CACHE_VERSION = 'medterm-v8.0';
-const FONT_CACHE = 'medterm-fonts-v2';
-const IMAGE_CACHE = 'medterm-images-v1';
-const CACHE_MAX_AGE = 7 * 24 * 60 * 60 * 1000; // 7 days
+const CACHE_VERSION = 'medterm-v9.0';
+const FONT_CACHE = 'medterm-fonts-v3';
+const IMAGE_CACHE = 'medterm-images-v2';
+const DATA_CACHE = 'medterm-data-v1';
+const CACHE_MAX_AGE = 7 * 24 * 60 * 60 * 1000; // 7 أيام
 const CACHE_META_KEY = 'medterm-cache-meta';
 
+// ========================================
+//  الملفات الأساسية للتطبيق
+// ========================================
 const APP_FILES = [
   './',
   './index.html',
@@ -19,7 +23,13 @@ const APP_FILES = [
   './security.js',
   './session.js',
   './worker.js',
-  './manifest.json',
+  './manifest.json'
+];
+
+// ========================================
+//  الأيقونات - جميع المقاسات
+// ========================================
+const ICON_FILES = [
   './icons/icon-72.png',
   './icons/icon-96.png',
   './icons/icon-128.png',
@@ -30,11 +40,25 @@ const APP_FILES = [
   './icons/icon-512.png'
 ];
 
-const FONT_URLS = [
-  'https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&family=Tajawal:wght@300;400;500;700;800&display=swap'
+// ========================================
+//  الصور المحلية للفصل الأول (عالية الجودة)
+// ========================================
+const LOCAL_IMAGES = [
+  './assets/images/chapter1/1-levels.webp',
+  './assets/images/chapter1/2-position.webp',
+  './assets/images/chapter1/3-directions.webp',
+  './assets/images/chapter1/4-regions.webp',
+  './assets/images/chapter1/5-abdomen.webp',
+  './assets/images/chapter1/6-planes.webp',
+  './assets/images/chapter1/7-cavities.webp',
+  './assets/images/chapter1/8-homeostasis.webp',
+  './assets/images/chapter1/9-tissues.webp'
 ];
 
-const IMAGE_URLS = [
+// ========================================
+//  الصور الخارجية من Wikimedia
+// ========================================
+const EXTERNAL_IMAGES = [
   'https://upload.wikimedia.org/wikipedia/commons/thumb/4/4a/Figure_01_01_01.jpg/600px-Figure_01_01_01.jpg',
   'https://upload.wikimedia.org/wikipedia/commons/thumb/1/12/Blausen_0019_AnatomicalDirectionalReferences.png/400px-Blausen_0019_AnatomicalDirectionalReferences.png',
   'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e2/Anatomical_terms_of_location_-_anterior_posterior.jpg/400px-Anatomical_terms_of_location_-_anterior_posterior.jpg',
@@ -53,30 +77,44 @@ const IMAGE_URLS = [
   'https://upload.wikimedia.org/wikipedia/commons/thumb/5/57/Negative_Feedback.jpg/400px-Negative_Feedback.jpg'
 ];
 
-// الصور المحلية للفصل الأول
-const LOCAL_IMAGES = [
-  './assets/images/chapter1/1-levels.webp',
-  './assets/images/chapter1/2-position.webp',
-  './assets/images/chapter1/3-directions.webp',
-  './assets/images/chapter1/4-regions.webp',
-  './assets/images/chapter1/5-abdomen.webp',
-  './assets/images/chapter1/6-planes.webp',
-  './assets/images/chapter1/7-cavities.webp',
-  './assets/images/chapter1/8-homeostasis.webp',
-  './assets/images/chapter1/9-tissues.webp'
+// ========================================
+//  خطوط Google Fonts (كاملة للتشغيل بدون إنترنت)
+// ========================================
+const FONT_URLS = [
+  'https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&family=Tajawal:wght@300;400;500;700;800&display=swap',
+  'https://fonts.gstatic.com/s/cairo/v28/SLXVc1nY6HkvangtZmpcWmhzfH5lWWgcQyyS4J0.woff2',
+  'https://fonts.gstatic.com/s/cairo/v28/SLXVc1nY6HkvangtZmpcWmhzfH5lWWgcQyS4J0.woff2',
+  'https://fonts.gstatic.com/s/cairo/v28/SLXVc1nY6HkvangtZmpcWmhzfH5lWWgcQS4J0.woff2',
+  'https://fonts.gstatic.com/s/tajawal/v9/Iurf6YBj_oCad4k1l8KiHrRpiYlJ.woff2',
+  'https://fonts.gstatic.com/s/tajawal/v9/Iurf6YBj_oCad4k1l8KiHrFpiQ.woff2'
 ];
 
-// تجميع كل الموارد
-const ALL_RESOURCES = [...APP_FILES, ...FONT_URLS, ...IMAGE_URLS, ...LOCAL_IMAGES];
+// ========================================
+//  جميع الموارد مجتمعة
+// ========================================
+const ALL_RESOURCES = [
+  ...APP_FILES,
+  ...ICON_FILES,
+  ...LOCAL_IMAGES,
+  ...EXTERNAL_IMAGES,
+  ...FONT_URLS
+];
+
 const TOTAL = ALL_RESOURCES.length;
 
-// ── Helper: broadcast to all clients ─────────────────────
+// ========================================
+//  دوال مساعدة
+// ========================================
+
+// إرسال رسالة لجميع العملاء
 function notifyClients(data) {
   self.clients.matchAll({ includeUncontrolled: true })
-    .then(clients => clients.forEach(c => c.postMessage(data)));
+    .then(clients => {
+      clients.forEach(c => c.postMessage(data));
+    });
 }
 
-// ── Helper: cache metadata ────────────────────────────────
+// حفظ معلومات الكاش
 async function saveCacheMeta() {
   const cache = await caches.open(CACHE_VERSION);
   await cache.put(CACHE_META_KEY, new Response(
@@ -89,6 +127,7 @@ async function saveCacheMeta() {
   ));
 }
 
+// الحصول على معلومات الكاش
 async function getCacheMeta() {
   try {
     const cache = await caches.open(CACHE_VERSION);
@@ -99,70 +138,103 @@ async function getCacheMeta() {
   }
 }
 
-// ── Helper: clear old caches ─────────────────────────────
+// حذف الكاش القديم
 async function deleteOldCaches() {
   const cacheNames = await caches.keys();
   const oldCaches = cacheNames.filter(name => 
     name !== CACHE_VERSION && 
     name !== FONT_CACHE && 
-    name !== IMAGE_CACHE
+    name !== IMAGE_CACHE &&
+    name !== DATA_CACHE
   );
   return Promise.all(oldCaches.map(name => caches.delete(name)));
 }
 
-// ── INSTALL ───────────────────────────────────────────────
+// حساب حجم الكاش
+async function getCacheSize() {
+  let totalSize = 0;
+  let totalItems = 0;
+  
+  const cacheNames = await caches.keys();
+  
+  for (const name of cacheNames) {
+    const cache = await caches.open(name);
+    const keys = await cache.keys();
+    totalItems += keys.length;
+    
+    for (const key of keys) {
+      const response = await cache.match(key);
+      if (response) {
+        const blob = await response.clone().blob();
+        totalSize += blob.size;
+      }
+    }
+  }
+  
+  return { items: totalItems, sizeMB: (totalSize / (1024 * 1024)).toFixed(2) };
+}
+
+// ========================================
+//  التثبيت (Install)
+// ========================================
 self.addEventListener('install', event => {
-  console.log('[Service Worker] Installing...');
+  console.log('[Service Worker] تثبيت الإصدار:', CACHE_VERSION);
   
   event.waitUntil(
     caches.open(CACHE_VERSION)
       .then(cache => {
-        // تثبيت الملفات الأساسية فقط أثناء التثبيت
+        // تثبيت الملفات الأساسية أولاً
         return Promise.allSettled(
           APP_FILES.map(f => 
             cache.add(f).catch(err => {
-              console.warn(`[SW] Failed to cache ${f}:`, err);
+              console.warn(`[SW] فشل تخزين ${f}:`, err);
             })
           )
         );
       })
       .then(() => {
-        console.log('[Service Worker] Installed successfully');
+        console.log('[Service Worker] تم التثبيت بنجاح');
         return self.skipWaiting();
       })
   );
 });
 
-// ── ACTIVATE ─────────────────────────────────────────────
+// ========================================
+//  التفعيل (Activate)
+// ========================================
 self.addEventListener('activate', event => {
-  console.log('[Service Worker] Activating...');
+  console.log('[Service Worker] تفعيل الإصدار الجديد');
   
   event.waitUntil(
     deleteOldCaches()
       .then(() => {
-        console.log('[Service Worker] Old caches cleared');
+        console.log('[Service Worker] تم حذف الكاش القديم');
         return self.clients.claim();
       })
       .then(() => {
-        console.log('[Service Worker] Activated and controlling clients');
+        console.log('[Service Worker] جاهز للتحكم بالصفحات');
       })
   );
 });
 
-// ── FETCH ─────────────────────────────────────────────────
+// ========================================
+//  معالجة الطلبات (Fetch)
+// ========================================
 self.addEventListener('fetch', event => {
-  // تجاهل طلبات POST أو الطلبات التي ليست GET
+  // تجاهل طلبات POST
   if (event.request.method !== 'GET') return;
   
   const url = new URL(event.request.url);
   
-  // تجاهل طلبات التحليلات والإحصائيات
+  // تجاهل طلبات التحليلات
   if (url.pathname.includes('analytics') || url.pathname.includes('track')) {
     return;
   }
 
-  // استراتيجية خاصة للصور المحلية
-  if (url.pathname.startsWith('/assets/images/')) {
+  // ========================================
+  //  الصور المحلية
+  // ========================================
+  if (url.pathname.includes('/assets/images/')) {
     event.respondWith(
       caches.open(IMAGE_CACHE).then(cache =>
         cache.match(event.request).then(cached => {
@@ -177,8 +249,7 @@ self.addEventListener('fetch', event => {
               return res;
             })
             .catch(() => {
-              // إذا فشل التحميل، نعيد صورة افتراضية
-              return new Response('', { status: 404, statusText: 'Image not found' });
+              return new Response('', { status: 404 });
             });
         })
       )
@@ -186,7 +257,28 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // Fonts
+  // ========================================
+  //  الأيقونات
+  // ========================================
+  if (url.pathname.includes('/icons/')) {
+    event.respondWith(
+      caches.open(IMAGE_CACHE).then(cache =>
+        cache.match(event.request).then(cached => {
+          if (cached) return cached;
+          return fetch(event.request)
+            .then(res => {
+              if (res.ok) cache.put(event.request, res.clone());
+              return res;
+            });
+        })
+      )
+    );
+    return;
+  }
+
+  // ========================================
+  //  الخطوط
+  // ========================================
   if (url.hostname.includes('fonts.gstatic.com') || url.hostname.includes('fonts.googleapis.com')) {
     event.respondWith(
       caches.open(FONT_CACHE).then(cache =>
@@ -196,15 +288,11 @@ self.addEventListener('fetch', event => {
           return fetch(event.request)
             .then(res => {
               if (res.ok) {
-                const clone = res.clone();
-                cache.put(event.request, clone).catch(err => {
-                  console.warn('[SW] Failed to cache font:', err);
-                });
+                cache.put(event.request, res.clone());
               }
               return res;
             })
             .catch(() => {
-              // إذا فشل تحميل الخط، نعيد استجابة فارغة (المتصفح سيستخدم الخط الاحتياطي)
               return new Response('', { status: 503 });
             });
         })
@@ -213,7 +301,9 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // Images from Wikimedia
+  // ========================================
+  //  الصور الخارجية
+  // ========================================
   if (url.hostname.includes('wikimedia') || url.hostname.includes('wikipedia')) {
     event.respondWith(
       caches.open(IMAGE_CACHE).then(cache =>
@@ -228,7 +318,6 @@ self.addEventListener('fetch', event => {
               return res;
             })
             .catch(() => {
-              // إذا فشل التحميل، نعيد صورة افتراضية
               return new Response('', { status: 503 });
             });
         })
@@ -237,13 +326,14 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // App – cache first with network fallback
+  // ========================================
+  //  الملفات الأساسية - Cache First
+  // ========================================
   event.respondWith(
     caches.open(CACHE_VERSION).then(cache =>
       cache.match(event.request).then(cached => {
-        // إذا وجدت في الكاش، أعدها
         if (cached) {
-          // تحديث الكاش في الخلفية (stale-while-revalidate)
+          // تحديث في الخلفية
           fetch(event.request)
             .then(res => {
               if (res.ok) {
@@ -254,7 +344,6 @@ self.addEventListener('fetch', event => {
           return cached;
         }
         
-        // إذا لم توجد، حاول التحميل من الشبكة
         return fetch(event.request)
           .then(res => {
             if (res.ok) {
@@ -263,7 +352,7 @@ self.addEventListener('fetch', event => {
             return res;
           })
           .catch(() => {
-            // إذا فشل كل شيء، أعد صفحة الخطأ المخصصة
+            // صفحة الخطأ للتوجيه
             if (event.request.mode === 'navigate') {
               return new Response(
                 `<!DOCTYPE html>
@@ -282,21 +371,9 @@ self.addEventListener('fetch', event => {
                       margin: 0;
                       direction: rtl;
                     }
-                    .offline-icon {
-                      font-size: 4rem;
-                      margin-bottom: 20px;
-                    }
-                    h1 {
-                      font-size: 1.8rem;
-                      color: #63b3ed;
-                      margin-bottom: 10px;
-                    }
-                    p {
-                      font-size: 1rem;
-                      color: #a0aec0;
-                      margin-bottom: 30px;
-                      line-height: 1.6;
-                    }
+                    .offline-icon { font-size: 4rem; margin-bottom: 20px; }
+                    h1 { font-size: 1.8rem; color: #63b3ed; margin-bottom: 10px; }
+                    p { font-size: 1rem; color: #a0aec0; margin-bottom: 30px; line-height: 1.6; }
                     .btn {
                       display: inline-block;
                       background: #63b3ed;
@@ -307,9 +384,7 @@ self.addEventListener('fetch', event => {
                       font-weight: 700;
                       margin-top: 20px;
                     }
-                    .btn:hover {
-                      background: #4299e1;
-                    }
+                    .btn:hover { background: #4299e1; }
                   </style>
                 </head>
                 <body>
@@ -328,8 +403,6 @@ self.addEventListener('fetch', event => {
                 }
               );
             }
-            
-            // للطلبات الأخرى، أعد استجابة فارغة
             return new Response('', { status: 404 });
           });
       })
@@ -337,32 +410,36 @@ self.addEventListener('fetch', event => {
   );
 });
 
-// ── MESSAGES ──────────────────────────────────────────────
+// ========================================
+//  معالجة الرسائل
+// ========================================
 self.addEventListener('message', async event => {
   if (!event.data) return;
 
-  // Skip waiting
+  // تخطي الانتظار
   if (event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
     return;
   }
 
-  // Full download with progress
+  // ========================================
+  //  تحميل كل الموارد
+  // ========================================
   if (event.data.type === 'DOWNLOAD_ALL') {
-    console.log('[Service Worker] Starting full download...');
+    console.log('[Service Worker] بدء تحميل جميع الموارد...');
     
     let done = 0;
     const cacheApp = await caches.open(CACHE_VERSION);
     const cacheFonts = await caches.open(FONT_CACHE);
     const cacheImgs = await caches.open(IMAGE_CACHE);
+    const cacheData = await caches.open(DATA_CACHE);
 
-    // إرسال تحديث كل 5% لتقليل الحمل
     let lastReportedPct = 0;
 
     for (const url of ALL_RESOURCES) {
       try {
         const isFont = url.includes('fonts.google') || url.includes('fonts.gstatic');
-        const isImage = url.includes('wikimedia') || url.includes('wikipedia') || url.includes('/assets/images/');
+        const isImage = url.includes('wikimedia') || url.includes('wikipedia') || url.includes('/assets/images/') || url.includes('/icons/');
         const bucket = isFont ? cacheFonts : isImage ? cacheImgs : cacheApp;
         
         const existing = await bucket.match(url);
@@ -376,18 +453,17 @@ self.addEventListener('message', async event => {
           if (res.ok) {
             await bucket.put(url, res.clone());
           } else {
-            console.warn(`[SW] Failed to fetch ${url}: ${res.status}`);
+            console.warn(`[SW] فشل تحميل ${url}: ${res.status}`);
           }
         }
       } catch (e) {
-        console.warn(`[SW] Error caching ${url}:`, e);
+        console.warn(`[SW] خطأ في تخزين ${url}:`, e);
       }
       
       done++;
       const pct = Math.round((done / TOTAL) * 100);
       
-      // أرسل التحديث فقط إذا تغيرت النسبة بمقدار 5% أو كان آخر تحديث
-      if (pct >= lastReportedPct + 5 || done === TOTAL) {
+      if (pct >= lastReportedPct + 2 || done === TOTAL) {
         lastReportedPct = pct;
         
         notifyClients({
@@ -402,71 +478,70 @@ self.addEventListener('message', async event => {
 
     await saveCacheMeta();
     
+    // حساب حجم التخزين
+    const size = await getCacheSize();
+    
     notifyClients({
       type: 'DOWNLOAD_COMPLETE',
       total: TOTAL,
       cachedAt: Date.now(),
-      expiresAt: Date.now() + CACHE_MAX_AGE
+      expiresAt: Date.now() + CACHE_MAX_AGE,
+      size: size.sizeMB
     });
     
-    console.log('[Service Worker] Download complete');
+    console.log('[Service Worker] اكتمل التحميل بنجاح');
   }
 
-  // Check cache status
+  // ========================================
+  //  التحقق من حالة الكاش
+  // ========================================
   if (event.data.type === 'CHECK_CACHE') {
     const meta = await getCacheMeta();
     const valid = meta ? (Date.now() - meta.cachedAt) < CACHE_MAX_AGE : false;
+    
+    const size = await getCacheSize();
     
     notifyClients({
       type: 'CACHE_STATUS',
       valid,
       meta,
-      expiresInDays: meta ? Math.max(0, Math.floor((meta.cachedAt + CACHE_MAX_AGE - Date.now()) / 86400000)) : 0
+      expiresInDays: meta ? Math.max(0, Math.floor((meta.cachedAt + CACHE_MAX_AGE - Date.now()) / 86400000)) : 0,
+      size: size.sizeMB,
+      items: size.items
     });
   }
 
-  // Clear all caches
+  // ========================================
+  //  مسح الكاش
+  // ========================================
   if (event.data.type === 'CLEAR_CACHE') {
     await Promise.all([
       caches.delete(CACHE_VERSION),
       caches.delete(FONT_CACHE),
-      caches.delete(IMAGE_CACHE)
+      caches.delete(IMAGE_CACHE),
+      caches.delete(DATA_CACHE)
     ]);
     
     notifyClients({ type: 'CACHE_CLEARED' });
-    console.log('[Service Worker] All caches cleared');
+    console.log('[Service Worker] تم مسح جميع الكاش');
   }
 
-  // Get cache size
+  // ========================================
+  //  الحصول على حجم الكاش
+  // ========================================
   if (event.data.type === 'GET_CACHE_SIZE') {
-    let totalSize = 0;
-    let totalItems = 0;
-    
-    const cacheNames = await caches.keys();
-    
-    for (const name of cacheNames) {
-      const cache = await caches.open(name);
-      const keys = await cache.keys();
-      totalItems += keys.length;
-      
-      for (const key of keys) {
-        const response = await cache.match(key);
-        if (response) {
-          const blob = await response.clone().blob();
-          totalSize += blob.size;
-        }
-      }
-    }
-    
+    const size = await getCacheSize();
     notifyClients({
       type: 'CACHE_SIZE',
-      items: totalItems,
-      sizeMB: (totalSize / (1024 * 1024)).toFixed(2)
+      items: size.items,
+      sizeMB: size.sizeMB
     });
   }
 });
 
-// ── BACKGROUND SYNC (للميزات المستقبلية) ──────────────────
+// ========================================
+//  مزامنة الخلفية (للمستقبل)
+// ========================================
 self.addEventListener('sync', event => {
   if (event.tag === 'sync-data') {
     event.waitUntil(syncData());
@@ -474,12 +549,12 @@ self.addEventListener('sync', event => {
 });
 
 async function syncData() {
-  // هذه الدالة ستستخدم للمزامنة في الخلفية عند عودة الاتصال
-  // سنضيفها في التحديثات المستقبلية
-  console.log('[Service Worker] Background sync triggered');
+  console.log('[Service Worker] مزامنة الخلفية');
 }
 
-// ── PUSH NOTIFICATIONS (للميزات المستقبلية) ───────────────
+// ========================================
+//  إشعارات فورية (للمستقبل)
+// ========================================
 self.addEventListener('push', event => {
   const data = event.data.json();
   
@@ -512,7 +587,9 @@ self.addEventListener('notificationclick', event => {
   }
 });
 
-// ── PERIODIC BACKGROUND SYNC (لمتصفحات Chrome المتطورة) ───
+// ========================================
+//  مزامنة دورية (للمستقبل)
+// ========================================
 self.addEventListener('periodicsync', event => {
   if (event.tag === 'update-cache') {
     event.waitUntil(updateCachePeriodically());
@@ -520,15 +597,12 @@ self.addEventListener('periodicsync', event => {
 });
 
 async function updateCachePeriodically() {
-  // تحديث الكاش بشكل دوري
-  console.log('[Service Worker] Periodic cache update');
+  console.log('[Service Worker] تحديث دوري للكاش');
   
   const meta = await getCacheMeta();
   if (!meta) return;
   
-  // إذا كان الكاش قديماً بأكثر من 6 أيام، قم بتحديثه
   if (Date.now() - meta.cachedAt > 6 * 24 * 60 * 60 * 1000) {
-    // إرسال إشارة للصفحة لبدء التحديث
     const clients = await self.clients.matchAll();
     clients.forEach(client => {
       client.postMessage({ type: 'CACHE_NEEDS_UPDATE' });
@@ -536,11 +610,13 @@ async function updateCachePeriodically() {
   }
 }
 
-// ── ERROR HANDLING ────────────────────────────────────────
+// ========================================
+//  معالجة الأخطاء
+// ========================================
 self.addEventListener('error', event => {
-  console.error('[Service Worker] Error:', event.error);
+  console.error('[Service Worker] خطأ:', event.error);
 });
 
 self.addEventListener('unhandledrejection', event => {
-  console.error('[Service Worker] Unhandled rejection:', event.reason);
+  console.error('[Service Worker] رفض غير معالج:', event.reason);
 });
