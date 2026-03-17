@@ -1,29 +1,30 @@
 // ============================================================
-//  MedTerm Features v5.0
+//  MedTerm Features v6.0
 //  🌙 Theme · 📊 XP/Levels · 🎴 Study Mode · 🔍 Search · ⏱️ Exam
+//  💾 Offline Support · 🔐 Session Management
 // ============================================================
 
 // ══════════════════════════════════════════════════════════
 //  THEME SYSTEM  🌙☀️
 // ══════════════════════════════════════════════════════════
 const LIGHT_VARS = {
-  '--bg':          '#f0f4f8',
-  '--bg2':         '#ffffff',
-  '--bg3':         '#e8edf5',
-  '--surface':     '#ffffff',
-  '--surface2':    '#f5f7fa',
-  '--surface3':    '#edf0f5',
-  '--border':      'rgba(66,153,225,0.15)',
-  '--border2':     'rgba(66,153,225,0.3)',
-  '--text':        '#1a202c',
-  '--text2':       '#4a5568',
-  '--text3':       '#718096',
-  '--accent':      '#3182ce',
-  '--accent2':     '#2b6cb0',
+  '--bg': '#f0f4f8',
+  '--bg2': '#ffffff',
+  '--bg3': '#e8edf5',
+  '--surface': '#ffffff',
+  '--surface2': '#f5f7fa',
+  '--surface3': '#edf0f5',
+  '--border': 'rgba(66,153,225,0.15)',
+  '--border2': 'rgba(66,153,225,0.3)',
+  '--text': '#1a202c',
+  '--text2': '#4a5568',
+  '--text3': '#718096',
+  '--accent': '#3182ce',
+  '--accent2': '#2b6cb0',
   '--accent-soft': 'rgba(49,130,206,0.12)',
   '--accent-glow': 'rgba(49,130,206,0.06)',
-  '--shadow':      '0 4px 24px rgba(0,0,0,0.1)',
-  '--shadow-sm':   '0 2px 12px rgba(0,0,0,0.07)',
+  '--shadow': '0 4px 24px rgba(0,0,0,0.1)',
+  '--shadow-sm': '0 2px 12px rgba(0,0,0,0.07)'
 };
 
 function applyTheme(dark) {
@@ -32,7 +33,7 @@ function applyTheme(dark) {
     Object.keys(LIGHT_VARS).forEach(k => root.style.removeProperty(k));
     document.body.classList.remove('light-mode');
   } else {
-    Object.entries(LIGHT_VARS).forEach(([k,v]) => root.style.setProperty(k, v));
+    Object.entries(LIGHT_VARS).forEach(([k, v]) => root.style.setProperty(k, v));
     document.body.classList.add('light-mode');
   }
   const icon = document.getElementById('themeIcon');
@@ -59,17 +60,34 @@ function initTheme() {
 // ══════════════════════════════════════════════════════════
 const LEVEL_THRESHOLDS = [0, 100, 250, 450, 700, 1000, 1400, 1900, 2500, 3200, 4000];
 const LEVEL_NAMES = [
-  '', 'مبتدئ', 'متعلم', 'مثابر', 'متقدم',
-  'ماهر', 'خبير', 'متميز', 'محترف', 'أستاذ', 'عبقري'
+  '',
+  'مبتدئ',
+  'متعلم',
+  'مثابر',
+  'متقدم',
+  'ماهر',
+  'خبير',
+  'متميز',
+  'محترف',
+  'أستاذ',
+  'عبقري'
 ];
-const LEVEL_ICONS = ['','🌱','📖','💡','🔬','⚗️','🧠','🎓','🏅','🥇','🏆'];
+const LEVEL_ICONS = ['', '🌱', '📖', '💡', '🔬', '⚗️', '🧠', '🎓', '🏅', '🥇', '🏆'];
 
 function getXPData() {
-  return JSON.parse(localStorage.getItem('medterm_xp') || '{"xp":0,"quizzes":0,"studied":0,"streak":0,"lastStudy":"","breakdown":{}}');
+  try {
+    return JSON.parse(localStorage.getItem('medterm_xp') || '{"xp":0,"quizzes":0,"studied":0,"streak":0,"lastStudy":"","breakdown":{},"daily":{}}');
+  } catch {
+    return { xp: 0, quizzes: 0, studied: 0, streak: 0, lastStudy: '', breakdown: {}, daily: {} };
+  }
 }
 
 function saveXPData(d) {
-  localStorage.setItem('medterm_xp', JSON.stringify(d));
+  try {
+    localStorage.setItem('medterm_xp', JSON.stringify(d));
+  } catch (e) {
+    console.warn('Failed to save XP data:', e);
+  }
 }
 
 function getLevel(xp) {
@@ -100,25 +118,25 @@ function getTodayXP() {
 function addXP(amount, reason) {
   const d = getXPData();
   const today = new Date().toDateString();
-  
+
   // التحقق من الحد اليومي
   d.daily = d.daily || {};
   const todayXP = d.daily[today] || 0;
-  
+
   if (todayXP + amount > DAILY_XP_LIMIT) {
     if (typeof showToast === 'function') showToast(`⚠️ وصلت للحد اليومي (${DAILY_XP_LIMIT} XP)`);
     return d.xp;
   }
-  
+
   const oldLvl = getLevel(d.xp);
   d.xp += amount;
   d.daily[today] = todayXP + amount;
 
-  // Track per-reason stats
+  // إحصائيات حسب السبب
   d.breakdown = d.breakdown || {};
   d.breakdown[reason] = (d.breakdown[reason] || 0) + amount;
 
-  // Track study card count specifically
+  // عدد البطاقات المدروسة
   if (reason === 'card') d.studied = (d.studied || 0) + 1;
 
   saveXPData(d);
@@ -126,6 +144,12 @@ function addXP(amount, reason) {
   if (newLvl > oldLvl) setTimeout(() => showLevelUpModal(newLvl), 400);
   if (typeof updateXPBar === 'function') updateXPBar();
   if (typeof updateWeeklyChart === 'function') updateWeeklyChart();
+
+  // مزامنة مع SessionManager
+  if (typeof SessionManager !== 'undefined' && SessionManager.save) {
+    SessionManager.save();
+  }
+
   return d.xp;
 }
 
@@ -134,15 +158,15 @@ function updateXPBar() {
   const lvl = getLevel(d.xp);
   const { pct, next } = getLevelProgress(d.xp);
 
-  const elXP    = document.getElementById('statXP');
-  const elLvl   = document.getElementById('statLevel');
-  const elFill  = document.getElementById('xpBarFill');
+  const elXP = document.getElementById('statXP');
+  const elLvl = document.getElementById('statLevel');
+  const elFill = document.getElementById('xpBarFill');
   const elCount = document.getElementById('xpBarCount');
   const elLabel = document.getElementById('xpLevelLabel');
 
-  if (elXP)    elXP.textContent = d.xp;
-  if (elLvl)   elLvl.textContent = toArabicNum(lvl);
-  if (elFill)  elFill.style.width = pct + '%';
+  if (elXP) elXP.textContent = d.xp;
+  if (elLvl) elLvl.textContent = toArabicNum(lvl);
+  if (elFill) elFill.style.width = pct + '%';
   if (elCount) elCount.textContent = `${d.xp} / ${next} XP`;
   if (elLabel) elLabel.textContent = toArabicNum(lvl);
 }
@@ -166,14 +190,14 @@ function showLevelUpModal(lvl) {
         🎉 شكراً!
       </button>
     </div>`;
-  
+
   overlay.addEventListener('click', e => {
     if (e.target === overlay) {
       overlay.classList.remove('visible');
       setTimeout(() => overlay.remove(), 400);
     }
   });
-  
+
   document.body.appendChild(overlay);
   requestAnimationFrame(() => overlay.classList.add('visible'));
 }
@@ -184,11 +208,11 @@ function showLevelUpModal(lvl) {
 function updateWeeklyChart() {
   const container = document.getElementById('weeklyChartContainer');
   if (!container) return;
-  
+
   const d = getXPData();
   const weeklyData = [];
   const days = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
-  
+
   // آخر 7 أيام
   for (let i = 6; i >= 0; i--) {
     const date = new Date();
@@ -196,14 +220,16 @@ function updateWeeklyChart() {
     const dateStr = date.toDateString();
     weeklyData.push(d.daily?.[dateStr] || 0);
   }
-  
+
   const maxXP = Math.max(...weeklyData, 1);
-  
-  const barsHTML = weeklyData.map(xp => {
-    const height = (xp / maxXP) * 100;
-    return `<div class="weekly-bar" style="height:${height}%" data-value="${xp} XP"></div>`;
-  }).join('');
-  
+
+  const barsHTML = weeklyData
+    .map(xp => {
+      const height = (xp / maxXP) * 100;
+      return `<div class="weekly-bar" style="height:${height}%" data-value="${xp} XP"></div>`;
+    })
+    .join('');
+
   document.getElementById('weeklyBars').innerHTML = barsHTML;
   document.getElementById('weeklyTotalXP').textContent = `${d.xp} XP`;
   container.style.display = 'block';
@@ -213,6 +239,81 @@ function updateWeeklyChart() {
 //  SEARCH SYSTEM  🔍
 // ══════════════════════════════════════════════════════════
 let searchTimeout = null;
+let searchIndex = null;
+
+// بناء فهرس البحث (يتم تخزينه محلياً)
+function buildSearchIndex() {
+  if (searchIndex) return searchIndex;
+
+  searchIndex = {
+    chapters: [],
+    terms: [],
+    sentences: []
+  };
+
+  try {
+    CHAPTERS.forEach(ch => {
+      // فصول
+      searchIndex.chapters.push({
+        id: ch.id,
+        title: ch.title,
+        titleEn: ch.titleEn,
+        overview: ch.overview,
+        icon: ch.icon,
+        color: ch.color
+      });
+
+      // مصطلحات
+      ch.terms?.forEach(term => {
+        searchIndex.terms.push({
+          chapterId: ch.id,
+          chapterTitle: ch.title,
+          en: term.en,
+          ar: term.ar,
+          desc: term.desc,
+          icon: '📖'
+        });
+      });
+
+      // جمل
+      ch.sentences?.forEach(sent => {
+        searchIndex.sentences.push({
+          chapterId: ch.id,
+          chapterTitle: ch.title,
+          text: sent.text,
+          ar: sent.ar,
+          note: sent.note || '',
+          icon: '📝'
+        });
+      });
+    });
+
+    // تخزين في localStorage للتشغيل بدون إنترنت
+    try {
+      localStorage.setItem('medterm_search_index', JSON.stringify(searchIndex));
+    } catch (e) {
+      console.warn('Failed to cache search index:', e);
+    }
+  } catch (e) {
+    console.warn('Failed to build search index:', e);
+  }
+
+  return searchIndex;
+}
+
+// تحميل فهرس البحث من التخزين المحلي
+function loadSearchIndex() {
+  try {
+    const cached = localStorage.getItem('medterm_search_index');
+    if (cached) {
+      searchIndex = JSON.parse(cached);
+      return true;
+    }
+  } catch (e) {
+    console.warn('Failed to load search index from cache:', e);
+  }
+  return false;
+}
 
 function performSearch() {
   const query = document.getElementById('searchInput')?.value.trim().toLowerCase();
@@ -220,21 +321,28 @@ function performSearch() {
     document.getElementById('searchResults').innerHTML = '<div class="search-placeholder">اكتب كلمة للبحث...</div>';
     return;
   }
-  
+
   clearTimeout(searchTimeout);
   searchTimeout = setTimeout(() => {
     const filterChapters = document.getElementById('filterChapters')?.checked;
     const filterTerms = document.getElementById('filterTerms')?.checked;
     const filterSentences = document.getElementById('filterSentences')?.checked;
-    
+
     const results = [];
-    
+
+    // تحميل أو بناء فهرس البحث
+    if (!searchIndex && !loadSearchIndex()) {
+      buildSearchIndex();
+    }
+
     // البحث في الفصول
-    if (filterChapters) {
-      CHAPTERS.forEach(ch => {
-        if (ch.title.toLowerCase().includes(query) || 
-            ch.titleEn.toLowerCase().includes(query) || 
-            ch.overview.toLowerCase().includes(query)) {
+    if (filterChapters && searchIndex?.chapters) {
+      searchIndex.chapters.forEach(ch => {
+        if (
+          ch.title.toLowerCase().includes(query) ||
+          ch.titleEn.toLowerCase().includes(query) ||
+          ch.overview.toLowerCase().includes(query)
+        ) {
           results.push({
             type: 'chapter',
             id: ch.id,
@@ -246,73 +354,84 @@ function performSearch() {
         }
       });
     }
-    
+
     // البحث في المصطلحات
-    if (filterTerms) {
-      CHAPTERS.forEach(ch => {
-        ch.terms?.forEach(term => {
-          if (term.en.toLowerCase().includes(query) || 
-              term.ar.includes(query) || 
-              term.desc.includes(query)) {
-            results.push({
-              type: 'term',
-              chapterId: ch.id,
-              chapterTitle: ch.title,
-              title: `${term.en} / ${term.ar}`,
-              preview: term.desc,
-              icon: '📖'
-            });
-          }
-        });
+    if (filterTerms && searchIndex?.terms) {
+      searchIndex.terms.forEach(term => {
+        if (
+          term.en.toLowerCase().includes(query) ||
+          term.ar.includes(query) ||
+          term.desc.includes(query)
+        ) {
+          results.push({
+            type: 'term',
+            chapterId: term.chapterId,
+            chapterTitle: term.chapterTitle,
+            title: `${term.en} / ${term.ar}`,
+            preview: term.desc,
+            icon: '📖'
+          });
+        }
       });
     }
-    
+
     // البحث في الجمل
-    if (filterSentences) {
-      CHAPTERS.forEach(ch => {
-        ch.sentences?.forEach(sent => {
-          if (sent.text.toLowerCase().includes(query) || 
-              sent.ar.includes(query) || 
-              (sent.note && sent.note.includes(query))) {
-            results.push({
-              type: 'sentence',
-              chapterId: ch.id,
-              chapterTitle: ch.title,
-              title: sent.text.substring(0, 50) + '...',
-              preview: sent.ar,
-              icon: '📝'
-            });
-          }
-        });
+    if (filterSentences && searchIndex?.sentences) {
+      searchIndex.sentences.forEach(sent => {
+        if (
+          sent.text.toLowerCase().includes(query) ||
+          sent.ar.includes(query) ||
+          sent.note.includes(query)
+        ) {
+          results.push({
+            type: 'sentence',
+            chapterId: sent.chapterId,
+            chapterTitle: sent.chapterTitle,
+            title: sent.text.substring(0, 50) + '...',
+            preview: sent.ar,
+            icon: '📝'
+          });
+        }
       });
     }
-    
+
     renderSearchResults(results, query);
+
+    // تحديث إحصائيات البحث
+    if (typeof addXP === 'function') {
+      const d = getXPData();
+      d.searches = (d.searches || 0) + 1;
+      saveXPData(d);
+    }
   }, 300);
 }
 
 function renderSearchResults(results, query) {
   const container = document.getElementById('searchResults');
-  
+
   if (results.length === 0) {
     container.innerHTML = '<div class="search-placeholder">لا توجد نتائج للبحث</div>';
     return;
   }
-  
-  const highlightText = (text) => {
+
+  const highlightText = text => {
     if (!query) return text;
     const regex = new RegExp(`(${query})`, 'gi');
     return text.replace(regex, '<span class="result-highlight">$1</span>');
   };
-  
-  container.innerHTML = results.map(r => `
+
+  container.innerHTML = results
+    .map(
+      r => `
     <div class="search-result-item" onclick="navigateToSearchResult('${r.type}', ${r.id || r.chapterId})">
       <span class="result-type ${r.type}">${r.type === 'chapter' ? 'فصل' : r.type === 'term' ? 'مصطلح' : 'جملة'}</span>
       <div class="result-title">${r.icon} ${highlightText(r.title)}</div>
       <div class="result-preview">${highlightText(r.preview)}</div>
       ${r.chapterTitle ? `<div style="font-size:0.7rem; color:var(--text3); margin-top:4px">من ${r.chapterTitle}</div>` : ''}
     </div>
-  `).join('');
+  `
+    )
+    .join('');
 }
 
 function navigateToSearchResult(type, id) {
@@ -363,21 +482,23 @@ function renderStudyChapterPicker(container) {
         🎯 دراسة كل المصطلحات
       </button>
       <div class="study-chapters-grid">
-        ${CHAPTERS.map(ch => `
+        ${CHAPTERS.map(
+          ch => `
           <div class="study-ch-card" onclick="startStudy(${ch.id})" style="--sc-color:${ch.color}">
             <div class="sc-icon">${ch.icon}</div>
             <div class="sc-title">${ch.title}</div>
             <div class="sc-count">${ch.terms ? ch.terms.length : 0} مصطلح</div>
-          </div>`).join('')}
+          </div>`
+        ).join('')}
       </div>
     </div>`;
 }
 
 function startStudy(chId) {
   const ch = CHAPTERS.find(c => c.id === chId);
-  if (!ch || !ch.terms || ch.terms.length === 0) { 
-    if (typeof showToast === 'function') showToast('لا توجد مصطلحات لهذا الفصل'); 
-    return; 
+  if (!ch || !ch.terms || ch.terms.length === 0) {
+    if (typeof showToast === 'function') showToast('لا توجد مصطلحات لهذا الفصل');
+    return;
   }
   const shuffled = [...ch.terms].sort(() => Math.random() - 0.5);
   studyState = { chapterId: chId, cards: shuffled, index: 0, flipped: false, correct: 0, total: shuffled.length };
@@ -386,11 +507,13 @@ function startStudy(chId) {
 
 function startStudyAll() {
   let all = [];
-  CHAPTERS.forEach(ch => { if (ch.terms) all = all.concat(ch.terms.map(t => ({...t, _ch: ch.title}))); });
+  CHAPTERS.forEach(ch => {
+    if (ch.terms) all = all.concat(ch.terms.map(t => ({ ...t, _ch: ch.title })));
+  });
   all = all.sort(() => Math.random() - 0.5);
-  if (all.length === 0) { 
-    if (typeof showToast === 'function') showToast('لا توجد مصطلحات'); 
-    return; 
+  if (all.length === 0) {
+    if (typeof showToast === 'function') showToast('لا توجد مصطلحات');
+    return;
   }
   studyState = { chapterId: 'all', cards: all, index: 0, flipped: false, correct: 0, total: all.length };
   renderStudyCard(document.getElementById('studyContainer'));
@@ -399,7 +522,7 @@ function startStudyAll() {
 function renderStudyCard(container) {
   const s = studyState;
   if (s.index >= s.cards.length) {
-    // Done
+    // انتهت الجلسة
     const xpEarned = s.correct * 5;
     addXP(xpEarned, 'study');
     container.innerHTML = `
@@ -408,7 +531,13 @@ function renderStudyCard(container) {
         <div class="sr-title">انتهت الجلسة!</div>
         <div class="sr-score">${s.correct} / ${s.total}</div>
         <div class="sr-xp">+${xpEarned} XP 🏆</div>
-        <div class="sr-msg">${s.correct === s.total ? 'ممتاز! أتقنت جميع المصطلحات!' : s.correct >= s.total*0.7 ? 'جيد جداً! استمر' : 'راجع المصطلحات مجدداً'}</div>
+        <div class="sr-msg">${
+          s.correct === s.total
+            ? 'ممتاز! أتقنت جميع المصطلحات!'
+            : s.correct >= s.total * 0.7
+            ? 'جيد جداً! استمر'
+            : 'راجع المصطلحات مجدداً'
+        }</div>
         <div class="sr-btns">
           <button class="sr-btn" onclick="studyState.chapterId=null;initStudy()">اختر فصلاً آخر</button>
           <button class="sr-btn accent" onclick="startStudy(${s.chapterId === 'all' ? "'all'" : s.chapterId});">إعادة</button>
@@ -487,7 +616,7 @@ let examState = {
 function initExam() {
   const container = document.getElementById('examContainer');
   if (!container) return;
-  
+
   if (!examState.active) {
     renderExamSettings(container);
   } else {
@@ -551,7 +680,7 @@ function startExam() {
   const questionCount = parseInt(document.getElementById('examQuestionCount')?.value || 20);
   const timerSeconds = parseInt(document.getElementById('examTimer')?.value || 0);
   const difficulty = document.getElementById('examDifficulty')?.value || 'all';
-  
+
   // جمع الأسئلة
   let allQuestions = [];
   if (chapterId === 'all') {
@@ -560,22 +689,21 @@ function startExam() {
     const ch = CHAPTERS.find(c => c.id == chapterId);
     if (ch) allQuestions = ch.quiz.map(q => ({ ...q, chapterId: ch.id, chapterTitle: ch.title }));
   }
-  
+
   if (allQuestions.length === 0) {
     if (typeof showToast === 'function') showToast('لا توجد أسئلة لهذا الفصل');
     return;
   }
-  
-  // تصفية حسب الصعوبة (محاكاة - في الواقع نحتاج حقل difficulty في الأسئلة)
+
+  // تصفية حسب الصعوبة (محاكاة)
   if (difficulty !== 'all') {
-    // هذا مجرد مثال - في الواقع نحتاج تصنيف حقيقي
     allQuestions = allQuestions.filter((_, i) => i % 3 === (difficulty === 'easy' ? 0 : difficulty === 'medium' ? 1 : 2));
   }
-  
+
   // اختيار عشوائي
   const shuffled = allQuestions.sort(() => Math.random() - 0.5);
   const selected = shuffled.slice(0, Math.min(questionCount, shuffled.length));
-  
+
   examState = {
     active: true,
     questions: selected,
@@ -587,7 +715,7 @@ function startExam() {
     answers: new Array(selected.length).fill(null),
     chapterId: chapterId
   };
-  
+
   if (timerSeconds > 0) {
     examState.timer = setInterval(() => {
       examState.timeLeft--;
@@ -598,18 +726,18 @@ function startExam() {
       }
     }, 1000);
   }
-  
+
   renderExamQuestion(document.getElementById('examContainer'));
 }
 
 function updateExamTimer() {
   const timerEl = document.getElementById('examTimerDisplay');
   if (!timerEl) return;
-  
+
   const minutes = Math.floor(examState.timeLeft / 60);
   const seconds = examState.timeLeft % 60;
   timerEl.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
-  
+
   if (examState.timeLeft < 60) {
     timerEl.classList.add('timer-warning');
   }
@@ -617,15 +745,15 @@ function updateExamTimer() {
 
 function renderExamQuestion(container) {
   const q = examState.questions[examState.current];
-  
-  const progress = ((examState.current) / examState.questions.length) * 100;
-  
+
+  const progress = (examState.current / examState.questions.length) * 100;
+
   container.innerHTML = `
     <div class="exam-container">
       <div class="exam-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px">
         <button class="back-btn" onclick="exitExam()">← إنهاء الامتحان</button>
         <div class="exam-progress">سؤال ${examState.current + 1} / ${examState.questions.length}</div>
-        ${examState.totalTime > 0 ? `<div class="exam-timer" id="examTimerDisplay">${Math.floor(examState.timeLeft/60)}:${(examState.timeLeft%60).toString().padStart(2,'0')}</div>` : ''}
+        ${examState.totalTime > 0 ? `<div class="exam-timer" id="examTimerDisplay">${Math.floor(examState.timeLeft / 60)}:${(examState.timeLeft % 60).toString().padStart(2, '0')}</div>` : ''}
       </div>
       
       <div class="quiz-progress"><div class="quiz-progress-fill" style="width:${progress}%"></div></div>
@@ -636,49 +764,47 @@ function renderExamQuestion(container) {
       </div>
       
       <div class="answers-grid">
-        ${q.opts.map((opt, i) => `
+        ${q.opts
+          .map(
+            (opt, i) => `
           <button class="answer-btn ${examState.answers[examState.current] === i ? 'selected' : ''}" 
                   onclick="selectExamAnswer(${i})"
                   ${examState.answers[examState.current] !== null ? 'disabled' : ''}>
             ${opt}
           </button>
-        `).join('')}
+        `
+          )
+          .join('')}
       </div>
       
       <div style="display:flex; gap:10px; margin-top:20px">
-        ${examState.current > 0 ? `
-          <button class="retry-btn secondary" onclick="prevExamQuestion()" style="flex:1">→ السابق</button>
-        ` : ''}
+        ${examState.current > 0 ? `<button class="retry-btn secondary" onclick="prevExamQuestion()" style="flex:1">→ السابق</button>` : ''}
         
-        ${examState.answers[examState.current] !== null ? `
-          <button class="retry-btn" onclick="nextExamQuestion()" style="flex:1">
-            ${examState.current === examState.questions.length - 1 ? 'إنهاء الامتحان' : 'التالي ←'}
-          </button>
-        ` : ''}
+        ${examState.answers[examState.current] !== null ? `<button class="retry-btn" onclick="nextExamQuestion()" style="flex:1">${examState.current === examState.questions.length - 1 ? 'إنهاء الامتحان' : 'التالي ←'}</button>` : ''}
       </div>
     </div>
   `;
-  
+
   if (examState.totalTime > 0) updateExamTimer();
 }
 
 function selectExamAnswer(idx) {
   if (examState.answers[examState.current] !== null) return;
-  
+
   const q = examState.questions[examState.current];
   examState.answers[examState.current] = idx;
-  
+
   if (idx === q.ans) {
     examState.score++;
   }
-  
+
   // تحديث واجهة الأزرار
   document.querySelectorAll('.answer-btn').forEach((btn, i) => {
     btn.disabled = true;
     if (i === q.ans) btn.classList.add('correct');
     if (i === idx && i !== q.ans) btn.classList.add('wrong');
   });
-  
+
   // إظهار زر التالي
   renderExamQuestion(document.getElementById('examContainer'));
 }
@@ -701,14 +827,14 @@ function nextExamQuestion() {
 
 function endExam() {
   if (examState.timer) clearInterval(examState.timer);
-  
+
   const correctCount = examState.answers.filter((a, i) => a === examState.questions[i]?.ans).length;
   const xpEarned = correctCount * 15;
   addXP(xpEarned, 'exam');
-  
+
   const container = document.getElementById('examContainer');
   const pct = Math.round((correctCount / examState.questions.length) * 100);
-  
+
   container.innerHTML = `
     <div class="quiz-result">
       <div class="result-icon">${pct >= 80 ? '🏆' : pct >= 50 ? '✅' : '📚'}</div>
@@ -721,7 +847,9 @@ function endExam() {
       
       <div style="width:100%; margin:20px 0; text-align:right">
         <h4 style="margin-bottom:10px">📊 تحليل الأداء:</h4>
-        ${examState.questions.map((q, i) => `
+        ${examState.questions
+          .map(
+            (q, i) => `
           <div style="padding:8px; background:var(--surface2); margin-bottom:4px; border-radius:8px; display:flex; align-items:center; gap:8px">
             <span style="color:${examState.answers[i] === q.ans ? 'var(--green)' : 'var(--red)'}">
               ${examState.answers[i] === q.ans ? '✅' : '❌'}
@@ -729,7 +857,9 @@ function endExam() {
             <span style="flex:1; font-size:0.8rem">${q.q.substring(0, 50)}...</span>
             <button class="speak-btn" onclick="speakText('${esc(q.q)}','ar-SA')">🔊</button>
           </div>
-        `).join('')}
+        `
+          )
+          .join('')}
       </div>
       
       <div class="result-btns">
@@ -738,6 +868,11 @@ function endExam() {
       </div>
     </div>
   `;
+
+  // تحديث إحصائيات الامتحان
+  const d = getXPData();
+  d.exams = (d.exams || 0) + 1;
+  saveXPData(d);
 }
 
 function exitExam() {
@@ -750,7 +885,7 @@ function retryExam() {
   const oldChapter = examState.chapterId;
   examState.active = false;
   if (examState.timer) clearInterval(examState.timer);
-  
+
   // إعادة تشغيل بنفس الإعدادات
   setTimeout(() => {
     document.getElementById('examChapter').value = oldChapter;
@@ -764,9 +899,9 @@ function retryExam() {
 function initProgress() {
   const container = document.getElementById('progressContainer');
   if (!container) return;
-  
-  const d    = getXPData();
-  const lvl  = getLevel(d.xp);
+
+  const d = getXPData();
+  const lvl = getLevel(d.xp);
   const { pct, next } = getLevelProgress(d.xp);
   const done = JSON.parse(localStorage.getItem('medterm_done') || '[]');
   const favs = JSON.parse(localStorage.getItem('medterm_favs') || '[]');
@@ -774,13 +909,11 @@ function initProgress() {
   const achievements = getAchievements(d, done, favs);
   const earned = achievements.filter(a => a.earned);
 
-  // Smart stats from SessionManager (if available)
-  const smart = (typeof SessionManager !== 'undefined' && SessionManager.sessionData)
-    ? SessionManager.getSmartStats() : null;
+  // إحصائيات ذكية من SessionManager
+  const smart = typeof SessionManager !== 'undefined' && SessionManager.sessionData ? SessionManager.getSmartStats() : null;
 
   container.innerHTML = `
     <div class="progress-page">
-
       <!-- Level Card -->
       <div class="prog-level-card">
         <div class="plc-icon">${LEVEL_ICONS[lvl]}</div>
@@ -792,14 +925,14 @@ function initProgress() {
       <div class="prog-xp-bar">
         <div class="prog-xp-labels"><span>المستوى الحالي</span><span>${d.xp} / ${next} XP</span></div>
         <div class="prog-xp-track"><div class="prog-xp-fill" style="width:${pct}%"></div></div>
-        <div class="prog-xp-next">المستوى التالي: ${LEVEL_NAMES[Math.min(lvl+1,LEVEL_NAMES.length-1)]}</div>
+        <div class="prog-xp-next">المستوى التالي: ${LEVEL_NAMES[Math.min(lvl + 1, LEVEL_NAMES.length - 1)]}</div>
       </div>
 
       <!-- Daily Progress -->
       <div class="prog-section-title">📊 تقدم اليوم (${getTodayXP()}/${DAILY_XP_LIMIT} XP)</div>
       <div style="background:var(--surface); border-radius:var(--radius); padding:12px; margin-bottom:20px">
         <div style="height:8px; background:var(--surface3); border-radius:99px; overflow:hidden">
-          <div style="width:${(getTodayXP()/DAILY_XP_LIMIT)*100}%; height:100%; background:linear-gradient(90deg,var(--accent),var(--teal)); border-radius:99px"></div>
+          <div style="width:${(getTodayXP() / DAILY_XP_LIMIT) * 100}%; height:100%; background:linear-gradient(90deg,var(--accent),var(--teal)); border-radius:99px"></div>
         </div>
       </div>
 
@@ -824,6 +957,19 @@ function initProgress() {
       </div>
       ` : ''}
 
+      <!-- Cache Status -->
+      <div class="prog-section-title">💾 التخزين المؤقت</div>
+      <div id="cacheStatusCard" class="prog-xp-bar" style="margin-bottom:20px; cursor:pointer" onclick="checkCacheStatus()">
+        <div style="display:flex; justify-content:space-between; margin-bottom:8px">
+          <span>حالة التخزين</span>
+          <span id="cacheStatusText">جاري التحقق...</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; margin-bottom:8px; font-size:0.8rem">
+          <span id="cacheSizeText">0 MB</span>
+          <span id="cacheExpiryText">—</span>
+        </div>
+      </div>
+
       <!-- Chapter Progress -->
       <div class="prog-section-title">📚 تقدم الفصول (${donePercent}%)</div>
       <div class="prog-chapters">
@@ -841,7 +987,9 @@ function initProgress() {
       <!-- Achievements -->
       <div class="prog-section-title">🏅 الإنجازات (${earned.length}/${achievements.length})</div>
       <div class="prog-achievements">
-        ${achievements.map(a => `
+        ${achievements
+          .map(
+            a => `
           <div class="achiev-card ${a.earned ? 'earned' : 'locked'}">
             <div class="achiev-icon">${a.icon}</div>
             <div class="achiev-info">
@@ -849,7 +997,9 @@ function initProgress() {
               <div class="achiev-desc">${a.desc}</div>
             </div>
             ${a.earned ? '<div class="achiev-check">✓</div>' : '<div class="achiev-lock">🔒</div>'}
-          </div>`).join('')}
+          </div>`
+          )
+          .join('')}
       </div>
 
       <!-- Reset & Share -->
@@ -857,58 +1007,60 @@ function initProgress() {
         <button class="prog-share-btn" onclick="shareResults()">📤 مشاركة تقدمي</button>
         <button class="prog-reset-btn" style="flex:1" onclick="confirmReset()">🗑️ إعادة التعيين</button>
       </div>
-    </div>`;
+    </div>
+  `;
+
+  // تحديث حالة الكاش
+  setTimeout(() => checkCacheStatus(), 500);
 }
 
 function getAchievements(d, done, favs) {
   return [
-    { icon:'🌱', name:'الخطوة الأولى',   desc:'افتح أي فصل',         earned: done.length >= 1 },
-    { icon:'📖', name:'قارئ نشط',        desc:'أكمل ٣ فصول',         earned: done.length >= 3 },
-    { icon:'🎓', name:'طالب متميز',      desc:'أكمل ٧ فصول',         earned: done.length >= 7 },
-    { icon:'🏆', name:'خريج التشريح',    desc:'أكمل جميع الفصول',    earned: done.length >= 14 },
-    { icon:'⭐', name:'محب المفضلة',     desc:'أضف ٥ مفضلات',        earned: favs.length >= 5 },
-    { icon:'🧠', name:'اختباري أول',     desc:'اجتز اختباراً واحداً', earned: (d.quizzes||0) >= 1 },
-    { icon:'🔥', name:'بطل الاختبارات', desc:'اجتز ١٠ اختبارات',    earned: (d.quizzes||0) >= 10 },
-    { icon:'🎴', name:'مبتدئ البطاقات', desc:'ادرس ٢٠ بطاقة',        earned: (d.studied||0) >= 20 },
-    { icon:'💯', name:'حافظ المصطلحات', desc:'ادرس ١٠٠ بطاقة',       earned: (d.studied||0) >= 100 },
-    { icon:'💎', name:'نجم MedTerm',    desc:'احصل على ٥٠٠ XP',     earned: d.xp >= 500 },
-    { icon:'⏱️', name:'بطل الامتحان',   desc:'اجتز امتحاناً بمؤقت',  earned: (d.exams||0) >= 1 },
-    { icon:'🔍', name:'باحث محترف',     desc:'ابحث ١٠ مرات',         earned: (d.searches||0) >= 10 },
+    { icon: '🌱', name: 'الخطوة الأولى', desc: 'افتح أي فصل', earned: done.length >= 1 },
+    { icon: '📖', name: 'قارئ نشط', desc: 'أكمل ٣ فصول', earned: done.length >= 3 },
+    { icon: '🎓', name: 'طالب متميز', desc: 'أكمل ٧ فصول', earned: done.length >= 7 },
+    { icon: '🏆', name: 'خريج التشريح', desc: 'أكمل جميع الفصول', earned: done.length >= 14 },
+    { icon: '⭐', name: 'محب المفضلة', desc: 'أضف ٥ مفضلات', earned: favs.length >= 5 },
+    { icon: '🧠', name: 'اختباري أول', desc: 'اجتز اختباراً واحداً', earned: (d.quizzes || 0) >= 1 },
+    { icon: '🔥', name: 'بطل الاختبارات', desc: 'اجتز ١٠ اختبارات', earned: (d.quizzes || 0) >= 10 },
+    { icon: '🎴', name: 'مبتدئ البطاقات', desc: 'ادرس ٢٠ بطاقة', earned: (d.studied || 0) >= 20 },
+    { icon: '💯', name: 'حافظ المصطلحات', desc: 'ادرس ١٠٠ بطاقة', earned: (d.studied || 0) >= 100 },
+    { icon: '💎', name: 'نجم MedTerm', desc: 'احصل على ٥٠٠ XP', earned: d.xp >= 500 },
+    { icon: '⏱️', name: 'بطل الامتحان', desc: 'اجتز امتحاناً بمؤقت', earned: (d.exams || 0) >= 1 },
+    { icon: '🔍', name: 'باحث محترف', desc: 'ابحث ١٠ مرات', earned: (d.searches || 0) >= 10 }
   ];
 }
 
-function confirmReset() {
-  if (!confirm('هل تريد إعادة تعيين كل التقدم؟ لا يمكن التراجع.')) return;
-  localStorage.removeItem('medterm_xp');
-  localStorage.removeItem('medterm_done');
-  localStorage.removeItem('medterm_favs');
-  if (window.STATE) {
-    window.STATE.favorites = [];
-    window.STATE.completedChapters = [];
+// ══════════════════════════════════════════════════════════
+//  CACHE STATUS  💾
+// ══════════════════════════════════════════════════════════
+function checkCacheStatus() {
+  if (!navigator.serviceWorker || !navigator.serviceWorker.controller) {
+    document.getElementById('cacheStatusText').textContent = 'غير متاح';
+    return;
   }
-  if (typeof updateXPBar === 'function') updateXPBar();
-  initProgress();
-  if (typeof showToast === 'function') showToast('🔄 تم إعادة التعيين');
+
+  navigator.serviceWorker.controller.postMessage({ type: 'CHECK_CACHE' });
 }
 
-function shareResults() {
-  const d = getXPData();
-  const lvl = getLevel(d.xp);
-  const done = JSON.parse(localStorage.getItem('medterm_done') || '[]');
-  const todayXP = getTodayXP();
-  const text = `📚 تقدمي في MedTerm\n🏆 المستوى ${lvl} – ${LEVEL_NAMES[lvl]}\n✅ أكملت ${done.length} من 14 فصلاً\n💎 ${d.xp} XP مجمّعة\n📊 اليوم: ${todayXP} XP\n\n#MedTerm #علم_التشريح`;
-  
-  if (navigator.share) {
-    navigator.share({ title: 'MedTerm – تقدمي', text }).catch(() => copyToClipboard(text));
+function updateCacheStatusUI(status) {
+  const statusEl = document.getElementById('cacheStatusText');
+  const sizeEl = document.getElementById('cacheSizeText');
+  const expiryEl = document.getElementById('cacheExpiryText');
+
+  if (!statusEl || !sizeEl || !expiryEl) return;
+
+  if (status.valid) {
+    statusEl.textContent = '✅ مخزّن';
+    statusEl.style.color = 'var(--green)';
+    sizeEl.textContent = `${status.size || '?'} MB`;
+    expiryEl.textContent = `صالحة ${status.expiresInDays} يوم`;
   } else {
-    copyToClipboard(text);
+    statusEl.textContent = '⚠️ غير مخزّن';
+    statusEl.style.color = 'var(--orange)';
+    sizeEl.textContent = '0 MB';
+    expiryEl.textContent = 'اضغط ⬇️ للتحميل';
   }
-}
-
-function copyToClipboard(text) {
-  navigator.clipboard?.writeText(text)
-    .then(() => showToast('📋 تم النسخ للحافظة!'))
-    .catch(() => showToast('⚠️ تعذّر المشاركة'));
 }
 
 // ══════════════════════════════════════════════════════════
@@ -923,19 +1075,19 @@ class VirtualScrollTerms {
     this.visibleCount = Math.ceil(container.clientHeight / itemHeight) + 2;
     this.scrollTop = 0;
     this.render();
-    
+
     container.addEventListener('scroll', () => {
       this.scrollTop = container.scrollTop;
       this.render();
     });
   }
-  
+
   render() {
     const start = Math.floor(this.scrollTop / this.itemHeight);
     const end = Math.min(start + this.visibleCount, this.terms.length);
-    
-    let html = '<div style="height:' + (this.terms.length * this.itemHeight) + 'px; position:relative">';
-    
+
+    let html = '<div style="height:' + this.terms.length * this.itemHeight + 'px; position:relative">';
+
     for (let i = start; i < end; i++) {
       const term = this.terms[i];
       const top = i * this.itemHeight;
@@ -945,7 +1097,7 @@ class VirtualScrollTerms {
         </div>
       `;
     }
-    
+
     html += '</div>';
     this.container.innerHTML = html;
   }
@@ -994,21 +1146,16 @@ function requestNotifications() {
 }
 
 function scheduleReminder() {
-  const msgs = [
-    'حان وقت مراجعة علم التشريح! 🔬',
-    'لا تنسَ دراستك اليومية في MedTerm 📚',
-    'بضع دقائق يومياً تصنع الفارق 🧠',
-    'راجع مصطلحاتك الطبية اليوم ⚕️',
-  ];
+  const msgs = ['حان وقت مراجعة علم التشريح! 🔬', 'لا تنسَ دراستك اليومية في MedTerm 📚', 'بضع دقائق يومياً تصنع الفارق 🧠', 'راجع مصطلحاتك الطبية اليوم ⚕️'];
   const msg = msgs[Math.floor(Math.random() * msgs.length)];
-  
+
   if (Notification.permission === 'granted') {
     setTimeout(() => {
       new Notification('MedTerm – تذكير الدراسة', {
         body: msg,
         icon: 'icons/icon-192.png',
         badge: 'icons/icon-72.png',
-        tag: 'medterm-reminder',
+        tag: 'medterm-reminder'
       });
     }, 5000);
   }
@@ -1020,17 +1167,55 @@ function scheduleReminder() {
 function checkDailyStreak() {
   const today = new Date().toDateString();
   const d = getXPData();
-  
+
   if (d.lastStudy !== today) {
     const yesterday = new Date(Date.now() - 86400000).toDateString();
     d.streak = d.lastStudy === yesterday ? (d.streak || 0) + 1 : 1;
     d.lastStudy = today;
-    d.xp = (d.xp || 0) + 5; // daily login bonus
+    d.xp = (d.xp || 0) + 5; // مكافأة تسجيل الدخول اليومي
     saveXPData(d);
     if (typeof updateXPBar === 'function') updateXPBar();
     if (typeof updateWeeklyChart === 'function') updateWeeklyChart();
     if (d.streak > 1 && typeof showToast === 'function') showToast(`🔥 ${d.streak} أيام متتالية! +5 XP`);
   }
+}
+
+// ══════════════════════════════════════════════════════════
+//  SHARE RESULTS  📤
+// ══════════════════════════════════════════════════════════
+function shareResults() {
+  const d = getXPData();
+  const lvl = getLevel(d.xp);
+  const done = JSON.parse(localStorage.getItem('medterm_done') || '[]');
+  const todayXP = getTodayXP();
+  const text = `📚 تقدمي في MedTerm\n🏆 المستوى ${lvl} – ${LEVEL_NAMES[lvl]}\n✅ أكملت ${done.length} من 14 فصلاً\n💎 ${d.xp} XP مجمّعة\n📊 اليوم: ${todayXP} XP\n\n#MedTerm #علم_التشريح`;
+
+  if (navigator.share) {
+    navigator.share({ title: 'MedTerm – تقدمي', text }).catch(() => copyToClipboard(text));
+  } else {
+    copyToClipboard(text);
+  }
+}
+
+function copyToClipboard(text) {
+  navigator.clipboard
+    ?.writeText(text)
+    .then(() => showToast('📋 تم النسخ للحافظة!'))
+    .catch(() => showToast('⚠️ تعذّر المشاركة'));
+}
+
+function confirmReset() {
+  if (!confirm('هل تريد إعادة تعيين كل التقدم؟ لا يمكن التراجع.')) return;
+  localStorage.removeItem('medterm_xp');
+  localStorage.removeItem('medterm_done');
+  localStorage.removeItem('medterm_favs');
+  if (window.STATE) {
+    window.STATE.favorites = [];
+    window.STATE.completedChapters = [];
+  }
+  if (typeof updateXPBar === 'function') updateXPBar();
+  initProgress();
+  if (typeof showToast === 'function') showToast('🔄 تم إعادة التعيين');
 }
 
 // ══════════════════════════════════════════════════════════
@@ -1042,10 +1227,32 @@ document.addEventListener('DOMContentLoaded', () => {
   if (typeof updateWeeklyChart === 'function') updateWeeklyChart();
   checkDailyStreak();
 
-  // Check notification status
+  // تحميل فهرس البحث
+  loadSearchIndex();
+
+  // التحقق من حالة الإشعارات
   if (localStorage.getItem('medterm_notif') === '1') {
     const btn = document.getElementById('notifBtn');
     if (btn) btn.textContent = '🔔 التذكيرات مفعلة';
+  }
+
+  // الاستماع لرسائل Service Worker
+  if (navigator.serviceWorker) {
+    navigator.serviceWorker.addEventListener('message', event => {
+      const data = event.data;
+      if (!data) return;
+
+      if (data.type === 'CACHE_STATUS') {
+        updateCacheStatusUI(data);
+      }
+
+      if (data.type === 'DOWNLOAD_COMPLETE') {
+        if (typeof showToast === 'function') {
+          showToast(`✅ تم تحميل ${data.total} ملف بنجاح! (${data.size} MB)`);
+        }
+        checkCacheStatus();
+      }
+    });
   }
 });
 
@@ -1070,3 +1277,8 @@ window.requestNotifications = requestNotifications;
 window.shareResults = shareResults;
 window.confirmReset = confirmReset;
 window.initProgress = initProgress;
+window.checkCacheStatus = checkCacheStatus;
+window.addXP = addXP;
+window.updateXPBar = updateXPBar;
+window.updateWeeklyChart = updateWeeklyChart;
+window.getXPData = getXPData;
