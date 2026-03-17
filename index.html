@@ -962,7 +962,7 @@ window.addEventListener('offline', () => { updateOnlineStatus(); showToast('📴
 // ── Service Worker Registration ──────────────────────
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js', { scope: './' })
+    navigator.serviceWorker.register('/medterm-app/sw.js', { scope: '/medterm-app/' })
       .then(reg => {
         _swReg = reg;
         initCacheListener();
