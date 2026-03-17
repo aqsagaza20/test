@@ -1,0 +1,1104 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <meta name="theme-color" content="#63b3ed"/>
+  <meta name="mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="apple-mobile-web-app-title" content="MedTerm"/>
+  <meta name="description" content="تطبيق ذكي لدراسة علم التشريح لطلاب التمريض - يعمل بدون إنترنت مع صور عالية الجودة"/>
+  <link rel="manifest" href="manifest.json"/>
+  <!-- iOS Icons -->
+  <link rel="apple-touch-icon" href="icons/icon-152.png"/>
+  <link rel="apple-touch-icon" sizes="72x72" href="icons/icon-72.png"/>
+  <link rel="apple-touch-icon" sizes="96x96" href="icons/icon-96.png"/>
+  <link rel="apple-touch-icon" sizes="128x128" href="icons/icon-128.png"/>
+  <link rel="apple-touch-icon" sizes="144x144" href="icons/icon-144.png"/>
+  <link rel="apple-touch-icon" sizes="152x152" href="icons/icon-152.png"/>
+  <link rel="apple-touch-icon" sizes="192x192" href="icons/icon-192.png"/>
+  <link rel="apple-touch-icon" sizes="512x512" href="icons/icon-512.png"/>
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png"/>
+  <link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png"/>
+  <!-- Preload critical assets -->
+<!-- في index.html السطر 25 -->
+  <link rel="stylesheet" href="/style.css"/>
+  <link rel="preload" as="script" href="app.js"/>
+  <link rel="preload" as="script" href="data.js"/>
+  <link rel="preload" as="script" href="worker.js"/>
+  <title>MedTerm – علم التشريح</title>
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+
+<!-- Sidebar Overlay -->
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+
+<!-- Side Drawer -->
+<aside class="side-drawer" id="sideDrawer">
+  <div class="drawer-header">
+    <div class="drawer-logo">
+      <svg width="32" height="32" viewBox="0 0 40 40">
+        <circle cx="20" cy="20" r="18" fill="none" stroke="var(--accent)" stroke-width="2"/>
+        <path d="M20 10 L20 30 M12 18 L28 18" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round"/>
+        <circle cx="20" cy="14" r="3" fill="var(--accent-soft)"/>
+      </svg>
+      <span>MedTerm</span>
+    </div>
+    <button class="close-btn" onclick="closeSidebar()">✕</button>
+  </div>
+  <nav class="drawer-nav">
+    <a href="#" onclick="navigate('home');closeSidebar()"><span class="nav-icon">🏠</span> الرئيسية</a>
+    <a href="#" onclick="navigate('chapters');closeSidebar()"><span class="nav-icon">📚</span> الفصول</a>
+    <a href="#" onclick="navigate('search');closeSidebar()"><span class="nav-icon">🔍</span> بحث متقدم</a>
+    <a href="#" onclick="navigate('study');closeSidebar()"><span class="nav-icon">🎴</span> وضع الدراسة</a>
+    <a href="#" onclick="navigate('favorites');closeSidebar()"><span class="nav-icon">⭐</span> المفضلة</a>
+    <a href="#" onclick="navigate('quiz');closeSidebar()"><span class="nav-icon">🧠</span> الاختبارات</a>
+    <a href="#" onclick="navigate('exam');closeSidebar()"><span class="nav-icon">⏱️</span> وضع الامتحان</a>
+    <a href="#" onclick="navigate('progress');closeSidebar()"><span class="nav-icon">📊</span> تقدمي</a>
+    <a href="#" onclick="navigate('overview');closeSidebar()"><span class="nav-icon">📋</span> لمحة عامة</a>
+    <a href="#" onclick="navigate('body3d');closeSidebar()"><span class="nav-icon">🫀</span> جسم الإنسان</a>
+    <div class="drawer-divider"></div>
+    <div class="drawer-section-title">الفصول السريعة</div>
+    <div id="drawerChaptersList"></div>
+  </nav>
+  <div class="drawer-footer">
+    <!-- Session Info Card -->
+    <div class="session-info-card" id="sessionInfoCard">
+      <div class="sic-header">
+        <span>🔐 جلسة آمنة</span>
+        <span class="sic-id" id="sessionIdShort">——</span>
+      </div>
+      <div class="sic-row"><span>بدأت:</span><span id="sessionStart">—</span></div>
+      <div class="sic-row"><span>آخر نشاط:</span><span id="lastActive">—</span></div>
+      <div class="sic-row"><span>مستوى الحماية:</span><span id="securityLevel">🔒 عالٍ</span></div>
+    </div>
+    <!-- Actions -->
+    <div class="drawer-footer-btns">
+      <button class="api-key-btn" onclick="openApiModal();closeSidebar()">🔑 مفتاح AI API</button>
+      <button class="api-key-btn" onclick="requestNotifications();closeSidebar()" id="notifBtn">🔔 تفعيل التذكيرات</button>
+      <button class="api-key-btn export-btn" onclick="SessionManager.exportSession();closeSidebar()">💾 نسخ احتياطي</button>
+      <label class="api-key-btn import-label">
+        📥 استيراد نسخة
+        <input type="file" id="importSessionInput" accept=".mtbak" style="display:none"
+               onchange="SessionManager.importSession(this.files[0])"/>
+      </label>
+      <button class="api-key-btn danger-btn" onclick="SessionManager.clearSession();closeSidebar()">🗑️ حذف الجلسة</button>
+    </div>
+    <p class="version">v5.0 · 14 فصل · 9 صور عالية الجودة</p>
+  </div>
+</aside>
+
+<!-- Top Header -->
+<header class="top-header" id="topHeader">
+  <button class="hamburger" onclick="openSidebar()" aria-label="القائمة الرئيسية">
+    <span></span><span></span><span></span>
+  </button>
+  <div class="header-logo" onclick="navigate('home')">
+    <svg width="28" height="28" viewBox="0 0 40 40">
+      <circle cx="20" cy="20" r="18" fill="none" stroke="var(--accent)" stroke-width="2"/>
+      <path d="M20 10 L20 30 M12 18 L28 18" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round"/>
+      <circle cx="20" cy="14" r="3" fill="var(--accent-soft)"/>
+    </svg>
+    <span>MedTerm</span>
+  </div>
+  <div class="header-actions">
+    <div id="offlineIndicator" class="offline-dot" title="غير متصل" style="display:none">●</div>
+    <button class="icon-btn" onclick="navigate('search')" title="بحث متقدم" aria-label="بحث">
+      <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <circle cx="11" cy="11" r="8" stroke-width="2"/>
+        <path d="M21 21l-4.35-4.35" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+    </button>
+    <button class="icon-btn download-cache-btn" id="downloadCacheBtn" onclick="startCacheDownload()" title="تحميل للاستخدام بدون إنترنت">
+      <svg width="19" height="19" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path d="M12 2v13M5 10l7 7 7-7" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <rect x="3" y="18" width="18" height="3" rx="1.5" fill="currentColor" stroke="none"/>
+      </svg>
+    </button>
+    <button class="icon-btn theme-toggle-btn" onclick="toggleTheme()" id="themeBtn" title="تغيير المظهر">
+      <span id="themeIcon">🌙</span>
+    </button>
+    <button class="icon-btn" onclick="navigate('favorites')" title="المفضلة">
+      <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" stroke-width="2" stroke-linejoin="round"/>
+      </svg>
+      <span class="badge" id="favBadge" style="display:none">0</span>
+    </button>
+  </div>
+</header>
+
+<!-- Main Content Area -->
+<main class="main-content" id="mainContent">
+
+  <!-- ======= HOME PAGE ======= -->
+  <section class="page active" id="page-home">
+    <div class="hero">
+      <div class="hero-bg"></div>
+      <div class="hero-content">
+        <div class="app-logo-big">
+          <svg width="64" height="64" viewBox="0 0 40 40">
+            <circle cx="20" cy="20" r="18" fill="none" stroke="var(--accent)" stroke-width="1.5"/>
+            <path d="M20 8 L20 32 M10 18 L30 18" stroke="var(--accent)" stroke-width="3" stroke-linecap="round"/>
+            <circle cx="20" cy="13" r="4" fill="var(--accent)" opacity="0.3"/>
+          </svg>
+        </div>
+        <h1 class="hero-title">MedTerm</h1>
+        <p class="hero-sub">دليلك الذكي لعلم التشريح</p>
+        <p class="hero-desc">١٤ فصلاً · ٩ صور عالية الجودة · شرح متعدد المصادر · نطق صوتي · اختبارات تفاعلية</p>
+        <button class="cta-btn" onclick="navigate('chapters')">
+          <span>ابدأ الدراسة</span>
+          <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path d="M5 12h14M12 5l7 7-7 7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <!-- WhatsApp Group Buttons -->
+        <div class="whatsapp-groups">
+          <a class="wa-btn wa-students" href="https://chat.whatsapp.com/GF0lqOtmMaEFxybTDdN5YF?mode=hq2tcla" target="_blank" rel="noopener">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+            </svg>
+            مجموعة الطلاب 👨‍🎓
+          </a>
+          <a class="wa-btn wa-girls" href="https://chat.whatsapp.com/HtJwGUlGX0E3QeGcnRlfjO?mode=gi_t" target="_blank" rel="noopener">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+            </svg>
+            مجموعة الطالبات 👩‍🎓
+          </a>
+        </div>
+      </div>
+    </div>
+    <div class="stats-row">
+      <div class="stat-card" onclick="navigate('progress')">
+        <span class="stat-num" id="statXP">0</span><span class="stat-lbl">XP</span>
+      </div>
+      <div class="stat-card" onclick="navigate('progress')">
+        <span class="stat-num" id="statLevel">١</span><span class="stat-lbl">المستوى</span>
+      </div>
+      <div class="stat-card"><span class="stat-num" id="statFav">0</span><span class="stat-lbl">مفضلة</span></div>
+      <div class="stat-card"><span class="stat-num" id="statDone">0</span><span class="stat-lbl">مكتمل</span></div>
+    </div>
+    <!-- XP Progress Bar -->
+    <div class="xp-bar-wrap" id="xpBarWrap">
+      <div class="xp-bar-info">
+        <span id="xpBarLabel">المستوى <span id="xpLevelLabel">١</span></span>
+        <span id="xpBarCount">0 / 100 XP</span>
+      </div>
+      <div class="xp-bar-track"><div class="xp-bar-fill" id="xpBarFill"></div></div>
+    </div>
+    
+    <!-- Weekly Progress Chart -->
+    <div class="weekly-chart-container" id="weeklyChartContainer" style="margin:16px; padding:12px; background:var(--surface); border-radius:var(--radius); display:none">
+      <div class="chart-header" style="display:flex; justify-content:space-between; margin-bottom:8px">
+        <span style="font-weight:700">📊 تقدمك الأسبوعي</span>
+        <span id="weeklyTotalXP" style="color:var(--accent)">0 XP</span>
+      </div>
+      <div class="weekly-bars" id="weeklyBars" style="display:flex; gap:4px; height:60px; align-items:flex-end"></div>
+      <div class="weekly-labels" style="display:flex; justify-content:space-between; margin-top:4px; font-size:0.7rem; color:var(--text3)">
+        <span>س</span><span>ن</span><span>ث</span><span>أ</span><span>ر</span><span>خ</span><span>ج</span>
+      </div>
+    </div>
+    
+    <div class="section-header">
+      <h2>الفصول الدراسية</h2>
+      <button class="see-all" onclick="navigate('chapters')">عرض الكل</button>
+    </div>
+    <div class="chapters-grid" id="homeChaptersGrid"></div>
+  </section>
+
+  <!-- ======= CHAPTERS PAGE ======= -->
+  <section class="page" id="page-chapters">
+    <div class="page-header">
+      <h2>📚 جميع الفصول</h2>
+      <p>اختر فصلاً لعرض الشرح والترجمة</p>
+    </div>
+    <div class="chapters-grid full" id="allChaptersGrid"></div>
+  </section>
+
+  <!-- ======= SEARCH PAGE ======= -->
+  <section class="page" id="page-search">
+    <div class="page-header">
+      <h2>🔍 بحث متقدم</h2>
+      <p>ابحث في المصطلحات والفصول والجمل بالعربية أو الإنجليزية</p>
+    </div>
+    <div class="search-container">
+      <div class="search-box">
+        <input type="text" id="searchInput" placeholder="اكتب كلمة بحث..." 
+               oninput="performSearch()" aria-label="بحث"/>
+        <button onclick="clearSearch()">مسح</button>
+      </div>
+      <div class="search-filters">
+        <label>
+          <input type="checkbox" id="filterChapters" checked onchange="performSearch()"/> الفصول
+        </label>
+        <label>
+          <input type="checkbox" id="filterTerms" checked onchange="performSearch()"/> المصطلحات
+        </label>
+        <label>
+          <input type="checkbox" id="filterSentences" checked onchange="performSearch()"/> الجمل
+        </label>
+      </div>
+      <div id="searchResults" class="search-results">
+        <div class="search-placeholder">
+          اكتب كلمة للبحث...
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======= CHAPTER DETAIL ======= -->
+  <section class="page" id="page-chapter-detail">
+    <div class="back-bar">
+      <button class="back-btn" onclick="navigate('chapters')">
+        <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path d="M19 12H5M12 19l-7-7 7-7" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        الفصول
+      </button>
+      <div class="chapter-progress-wrap">
+        <div class="chapter-progress-bar"><div class="chapter-progress-fill" id="chProgressFill"></div></div>
+      </div>
+      <button class="focus-mode-btn" id="focusModeBtn" onclick="toggleFocusMode()" title="وضع التركيز">🎯</button>
+    </div>
+    <div class="chapter-hero" id="chapterHero">
+      <div class="ch-icon" id="chIcon"></div>
+      <div class="ch-info">
+        <span class="ch-tag" id="chTag"></span>
+        <h2 id="chTitle"></h2>
+        <p id="chDesc"></p>
+      </div>
+      <button class="fav-toggle" id="chFavBtn" onclick="toggleChapterFav()">
+        <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" stroke-width="2" stroke-linejoin="round"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Three main choices -->
+    <div class="ch-choices">
+      <button class="ch-choice-btn explain" onclick="showChapterMode('explain')">
+        <div class="cc-icon">🧬</div>
+        <div class="cc-text">
+          <span class="cc-title">شرح الفصل</span>
+          <span class="cc-sub">شرح مبسط من مصادر متعددة</span>
+        </div>
+        <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path d="M9 18l6-6-6-6" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </button>
+      <button class="ch-choice-btn translate" onclick="showChapterMode('translate')">
+        <div class="cc-icon">🌐</div>
+        <div class="cc-text">
+          <span class="cc-title">ترجمة الفصل</span>
+          <span class="cc-sub">ترجمة المصطلحات مع النطق الصوتي</span>
+        </div>
+        <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path d="M9 18l6-6-6-6" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </button>
+      <button class="ch-choice-btn sentences" id="chSentencesBtn" onclick="showChapterMode('sentences')" style="display:none">
+        <div class="cc-icon">📝</div>
+        <div class="cc-text">
+          <span class="cc-title">الجمل المرقّمة</span>
+          <span class="cc-sub">كل جملة مع نطقها وترجمتها وشرحها</span>
+        </div>
+        <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path d="M9 18l6-6-6-6" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </button>
+      <button class="ch-choice-btn images" id="chImagesBtn" onclick="showChapterMode('images')">
+        <div class="cc-icon">🖼️</div>
+        <div class="cc-text">
+          <span class="cc-title">صور الفصل</span>
+          <span class="cc-sub">صور تشريحية عالية الجودة مع تحكم</span>
+        </div>
+        <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path d="M9 18l6-6-6-6" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Content tabs (explain mode) -->
+    <div class="ch-tabs-wrap" id="chTabsWrap" style="display:none">
+      <div class="ch-tabs">
+        <button class="ch-tab active" data-source="doctor" onclick="switchSource('doctor')">👨‍⚕️ الدكتور</button>
+        <button class="ch-tab" data-source="chatgpt" onclick="switchSource('chatgpt')">🤖 ChatGPT</button>
+        <button class="ch-tab" data-source="gemini" onclick="switchSource('gemini')">✨ Gemini</button>
+        <button class="ch-tab" data-source="notebook" onclick="switchSource('notebook')">📓 NotebookLM</button>
+      </div>
+      <div class="ch-source-content" id="chSourceContent"></div>
+    </div>
+
+    <!-- Translation mode -->
+    <div class="ch-translate-wrap" id="chTranslateWrap" style="display:none">
+      <div class="translate-controls">
+        <button class="trl-lang active" onclick="setTranslateLang('ar')">العربية 🇸🇦</button>
+        <button class="trl-lang" onclick="setTranslateLang('en')">English 🇬🇧</button>
+      </div>
+      <div class="ch-source-content" id="chTranslateContent"></div>
+    </div>
+
+    <!-- Numbered Sentences mode -->
+    <div class="ch-sentences-wrap" id="chSentencesWrap" style="display:none"></div>
+
+    <!-- Images mode -->
+    <div class="ch-images-wrap" id="chImagesWrap" style="display:none"></div>
+  </section>
+
+  <!-- ======= STUDY MODE PAGE ======= -->
+  <section class="page" id="page-study">
+    <div class="page-header">
+      <h2>🎴 وضع الدراسة</h2>
+      <p>بطاقات تفاعلية لحفظ المصطلحات</p>
+    </div>
+    <div id="studyContainer"></div>
+  </section>
+
+  <!-- ======= EXAM MODE PAGE ======= -->
+  <section class="page" id="page-exam">
+    <div class="page-header">
+      <h2>⏱️ وضع الامتحان</h2>
+      <p>اختبر نفسك بظروف الامتحان الحقيقي مع مؤقت زمني</p>
+    </div>
+    <div id="examContainer"></div>
+  </section>
+
+  <!-- ======= PROGRESS PAGE ======= -->
+  <section class="page" id="page-progress">
+    <div class="page-header">
+      <h2>📊 تقدمي</h2>
+      <p>إحصاءات ونقاط ومستواك الدراسي</p>
+    </div>
+    <div id="progressContainer"></div>
+  </section>
+
+  <!-- ======= FAVORITES PAGE ======= -->
+  <section class="page" id="page-favorites">
+    <div class="page-header">
+      <h2>⭐ المفضلة</h2>
+      <p>الفصول التي حفظتها للمراجعة</p>
+    </div>
+    <div id="favoritesContainer"></div>
+  </section>
+
+  <!-- ======= QUIZ PAGE ======= -->
+  <section class="page" id="page-quiz">
+    <div class="page-header">
+      <h2>🧠 الاختبارات</h2>
+      <p>اختبر معلوماتك في علم التشريح</p>
+    </div>
+    <div id="quizContainer"></div>
+  </section>
+
+  <!-- ======= OVERVIEW PAGE ======= -->
+  <section class="page" id="page-overview">
+    <div class="page-header">
+      <h2>📋 لمحة عامة</h2>
+      <p>نظرة شاملة على منهج علم التشريح</p>
+    </div>
+    <div class="overview-grid" id="overviewGrid"></div>
+  </section>
+
+  <!-- ======= BODY 3D PAGE ======= -->
+  <section class="page" id="page-body3d">
+    <div class="page-header">
+      <h2>🫀 جسم الإنسان</h2>
+      <p>استكشف أعضاء جسم الإنسان بصور تفاعلية</p>
+    </div>
+    <div class="body-explorer" id="bodyExplorer"></div>
+  </section>
+
+</main>
+
+<!-- Bottom Navigation -->
+<nav class="bottom-nav" id="bottomNav">
+  <button class="nav-btn active" data-page="home" onclick="navigate('home')">
+    <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" stroke-width="2"/>
+      <polyline points="9 22 9 12 15 12 15 22" stroke-width="2"/>
+    </svg>
+    <span>الرئيسية</span>
+  </button>
+  <button class="nav-btn" data-page="chapters" onclick="navigate('chapters')">
+    <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z" stroke-width="2"/>
+      <path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z" stroke-width="2"/>
+    </svg>
+    <span>الفصول</span>
+  </button>
+  <button class="nav-btn" data-page="search" onclick="navigate('search')">
+    <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <circle cx="11" cy="11" r="8" stroke-width="2"/>
+      <path d="M21 21l-4.35-4.35" stroke-width="2" stroke-linecap="round"/>
+    </svg>
+    <span>بحث</span>
+  </button>
+  <button class="nav-btn" data-page="quiz" onclick="navigate('quiz')">
+    <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="10" stroke-width="2"/>
+      <path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3" stroke-width="2" stroke-linecap="round"/>
+      <line x1="12" y1="17" x2="12.01" y2="17" stroke-width="2" stroke-linecap="round"/>
+    </svg>
+    <span>اختبارات</span>
+  </button>
+  <button class="nav-btn" data-page="progress" onclick="navigate('progress')">
+    <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <span>تقدمي</span>
+  </button>
+</nav>
+
+<!-- Audio Player Bar -->
+<div class="audio-bar" id="audioBar" style="display:none">
+  <div class="audio-wave-anim">
+    <span></span><span></span><span></span><span></span><span></span>
+  </div>
+  <div class="audio-info">
+    <span class="audio-title" id="audioTitle">جاري التشغيل...</span>
+    <span class="audio-lang" id="audioLang">AR</span>
+  </div>
+  <div class="audio-controls">
+    <button onclick="stopAudio()" title="إيقاف">
+      <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24">
+        <rect x="6" y="4" width="4" height="16"/>
+        <rect x="14" y="4" width="4" height="16"/>
+      </svg>
+    </button>
+    <div class="audio-progress"><div class="audio-progress-fill" id="audioProgressFill"></div></div>
+    <button onclick="toggleAudioLang()" class="lang-switch" id="langSwitch" title="تغيير اللغة">AR</button>
+  </div>
+</div>
+
+<!-- ═══ ONBOARDING TOUR ═══ -->
+<div class="onboard-overlay" id="onboardOverlay">
+  <div class="onboard-box" id="onboardBox">
+
+    <!-- Step 1 -->
+    <div class="onboard-step active" data-step="1">
+      <div class="onboard-emoji">👋</div>
+      <h2 class="onboard-title">أهلاً بك في MedTerm!</h2>
+      <p class="onboard-desc">دليلك الذكي لتعلم علم التشريح لطلاب التمريض — ١٤ فصلاً كاملاً بشرح متعدد المصادر ونطق صوتي.</p>
+      <div class="onboard-dots">
+        <span class="od active"></span><span class="od"></span><span class="od"></span><span class="od"></span><span class="od"></span>
+      </div>
+      <button class="onboard-next-btn" onclick="onboardNext()">التالي ←</button>
+    </div>
+
+    <!-- Step 2 -->
+    <div class="onboard-step" data-step="2">
+      <div class="onboard-emoji">📚</div>
+      <h2 class="onboard-title">الفصول والشرح</h2>
+      <p class="onboard-desc">لكل فصل شرح من <strong>٤ مصادر</strong>: الدكتور · ChatGPT · Gemini · NotebookLM — اختر ما يناسبك!</p>
+      <div class="onboard-visual">
+        <div class="ov-chip">👨‍⚕️ الدكتور</div>
+        <div class="ov-chip">🤖 ChatGPT</div>
+        <div class="ov-chip">✨ Gemini</div>
+        <div class="ov-chip">📓 NotebookLM</div>
+      </div>
+      <div class="onboard-dots">
+        <span class="od"></span><span class="od active"></span><span class="od"></span><span class="od"></span><span class="od"></span>
+      </div>
+      <button class="onboard-next-btn" onclick="onboardNext()">التالي ←</button>
+    </div>
+
+    <!-- Step 3 -->
+    <div class="onboard-step" data-step="3">
+      <div class="onboard-emoji">🖼️</div>
+      <h2 class="onboard-title">صور عالية الجودة</h2>
+      <p class="onboard-desc">٩ صور تشريحية عالية الدقة مع إمكانية التكبير والتصغير والتحميل والمشاركة — كلها متاحة بدون إنترنت!</p>
+      <div class="onboard-dots">
+        <span class="od"></span><span class="od"></span><span class="od active"></span><span class="od"></span><span class="od"></span>
+      </div>
+      <button class="onboard-next-btn" onclick="onboardNext()">التالي ←</button>
+    </div>
+
+    <!-- Step 4 -->
+    <div class="onboard-step" data-step="4">
+      <div class="onboard-emoji">🏆</div>
+      <h2 class="onboard-title">نقاط XP والمستويات</h2>
+      <p class="onboard-desc">كل نشاط يمنحك نقاط — ارتقِ من <strong>مبتدئ 🌱</strong> إلى <strong>عبقري 🏆</strong> عبر ١٠ مستويات!</p>
+      <div class="onboard-visual">
+        <div class="ov-xp-bar">
+          <div class="ov-xp-fill"></div>
+        </div>
+        <div class="ov-level-row">
+          <span>🌱 مبتدئ</span><span>→</span><span>📖 متعلم</span><span>→</span><span>🏆 عبقري</span>
+        </div>
+      </div>
+      <div class="onboard-dots">
+        <span class="od"></span><span class="od"></span><span class="od"></span><span class="od active"></span><span class="od"></span>
+      </div>
+      <button class="onboard-next-btn" onclick="onboardNext()">التالي ←</button>
+    </div>
+
+    <!-- Step 5 -->
+    <div class="onboard-step" data-step="5">
+      <div class="onboard-emoji">💾</div>
+      <h2 class="onboard-title">تحميل للاستخدام بدون إنترنت</h2>
+      <p class="onboard-desc">اضغط على زر ⬇️ في الشريط العلوي لتحميل كل الموارد دفعة واحدة — يعمل لمدة ٧ أيام بدون إنترنت!</p>
+      <div class="onboard-dots">
+        <span class="od"></span><span class="od"></span><span class="od"></span><span class="od"></span><span class="od active"></span>
+      </div>
+      <button class="onboard-next-btn finish" onclick="onboardFinish()">🚀 ابدأ الآن!</button>
+    </div>
+
+    <!-- Skip -->
+    <button class="onboard-skip" onclick="onboardFinish()">تخطي</button>
+  </div>
+</div>
+
+<!-- ═══ DOWNLOAD PROGRESS MODAL ═══ -->
+<div class="dl-overlay" id="dlOverlay">
+  <div class="dl-box">
+    <div class="dl-icon-wrap">
+      <svg class="dl-spin-icon" width="36" height="36" fill="none" stroke="var(--accent)" viewBox="0 0 24 24">
+        <path d="M12 2v8M5 10l7 7 7-7" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <rect x="3" y="18" width="18" height="3" rx="1.5" fill="var(--accent)" stroke="none"/>
+      </svg>
+    </div>
+    <h3 class="dl-title">تحميل الموارد للاستخدام بدون إنترنت</h3>
+    <p class="dl-sub" id="dlSub">جاري التحضير...</p>
+
+    <!-- Progress bar -->
+    <div class="dl-track">
+      <div class="dl-fill" id="dlFill"></div>
+    </div>
+    <div class="dl-pct-row">
+      <span class="dl-pct" id="dlPct">0%</span>
+      <span class="dl-count" id="dlCount">0 / 0</span>
+    </div>
+
+    <!-- Current file label -->
+    <div class="dl-current" id="dlCurrent">بدء التحميل...</div>
+
+    <!-- Stats -->
+    <div class="dl-stats" id="dlStats" style="display:none">
+      <div class="dl-stat-row">
+        <span>📦 إجمالي الملفات</span>
+        <span id="dlStatTotal">—</span>
+      </div>
+      <div class="dl-stat-row">
+        <span>⏱️ مدة التخزين</span>
+        <span>7 أيام</span>
+      </div>
+      <div class="dl-stat-row">
+        <span>📅 صالح حتى</span>
+        <span id="dlStatExpiry">—</span>
+      </div>
+    </div>
+
+    <button class="dl-close-btn" id="dlCloseBtn" onclick="closeDlModal()" style="display:none">
+      ✅ تم — إغلاق
+    </button>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- ═══ PWA INSTALL SYSTEM ═══ -->
+
+<!-- Floating Install Button -->
+<div id="installApp">
+  ⬇️ تحميل التطبيق
+</div>
+
+<!-- iOS Install Modal -->
+<div class="ios-install-overlay" id="iosInstallOverlay">
+  <div class="ios-install-modal">
+    <button class="ios-modal-close" onclick="closeIOSModal()">✕</button>
+    <div class="ios-modal-icon">📲</div>
+    <h3 class="ios-modal-title">ثبّت MedTerm على جهازك</h3>
+    <p class="ios-modal-desc">لتثبيت التطبيق على iPhone أو iPad، اتبع الخطوات:</p>
+    <div class="ios-steps">
+      <div class="ios-step">
+        <span class="ios-step-num">١</span>
+        <span>اضغط زر <strong>مشاركة ⎙</strong> في أسفل المتصفح</span>
+      </div>
+      <div class="ios-step">
+        <span class="ios-step-num">٢</span>
+        <span>اختر <strong>"إضافة إلى الشاشة الرئيسية"</strong></span>
+      </div>
+      <div class="ios-step">
+        <span class="ios-step-num">٣</span>
+        <span>اضغط <strong>"إضافة"</strong> للتأكيد</span>
+      </div>
+    </div>
+    <div class="ios-share-hint">
+      <svg width="24" height="24" fill="none" stroke="#63b3ed" viewBox="0 0 24 24" stroke-width="2">
+        <path d="M8 6l4-4 4 4M12 2v13" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M20 16v4a2 2 0 01-2 2H6a2 2 0 01-2-2v-4" stroke-linecap="round"/>
+      </svg>
+      <span>ابحث عن هذا الزر في شريط Safari</span>
+    </div>
+  </div>
+</div>
+
+<!-- API Key Modal -->
+<div class="modal-overlay" id="apiModal">
+  <div class="modal-box">
+    <div class="modal-icon">🔑</div>
+    <h3>مفتاح Anthropic API</h3>
+    <p>لتفعيل شرح الذكاء الاصطناعي المباشر، أضف مفتاح API الخاص بك:</p>
+    <input type="password" id="apiKeyInput" placeholder="sk-ant-..." class="api-input"/>
+    <div class="modal-actions">
+      <button class="modal-btn primary" onclick="saveApiKey()">حفظ وتفعيل</button>
+      <button class="modal-btn secondary" onclick="closeApiModal()">إغلاق</button>
+    </div>
+    <p class="modal-note">🔒 يُحفظ المفتاح مشفراً محلياً في جهازك فقط</p>
+    <p class="api-key-warning">⚠️ هذا التطبيق يستخدم تشفير AES-GCM مع PBKDF2 لحماية بياناتك</p>
+  </div>
+</div>
+
+<!-- Image Lightbox Modal -->
+<div class="img-lightbox-modal" id="imgLightboxModal" style="display:none">
+  <div class="lightbox-content">
+    <div class="lightbox-header">
+      <button class="lightbox-close" onclick="closeImageLightbox()">✕</button>
+      <div class="lightbox-controls">
+        <button onclick="zoomOutImage()" title="تصغير">🔍-</button>
+        <button onclick="zoomInImage()" title="تكبير">🔍+</button>
+        <button onclick="resetImageZoom()" title="إعادة ضبط">⟲</button>
+        <button onclick="downloadCurrentImage()" title="تحميل">⬇️</button>
+        <button onclick="shareCurrentImage()" title="مشاركة">📤</button>
+      </div>
+    </div>
+    <div class="lightbox-image-container" id="lightboxImageContainer">
+      <img id="lightboxImage" src="" alt="" style="transform:scale(1); transition:transform 0.2s"/>
+    </div>
+    <div class="lightbox-caption" id="lightboxCaption"></div>
+  </div>
+</div>
+
+<script src="data.js"></script>
+<script src="app.js"></script>
+<script src="security.js" data-medterm="true"></script>
+<script src="session.js" data-medterm="true"></script>
+<script src="features.js" data-medterm="true"></script>
+<script src="worker.js"></script>
+<script>
+// ============================================================
+//  MedTerm App v5.0 - التهيئة الرئيسية
+// ============================================================
+
+// متغيرات عامة
+let _onboardStep = 1;
+let _swReg = null;
+let _dlActive = false;
+let currentLightboxImage = null;
+let currentZoom = 1;
+
+// ── Onboarding Tour ─────────────────────────────────
+function onboardNext() {
+  _onboardStep++;
+  if (_onboardStep > 5) { onboardFinish(); return; }
+  document.querySelectorAll('.onboard-step').forEach(s => s.classList.remove('active'));
+  const step = document.querySelector(`.onboard-step[data-step="${_onboardStep}"]`);
+  if (step) {
+    const box = document.getElementById('onboardBox');
+    box.style.animation = 'none';
+    requestAnimationFrame(() => {
+      box.style.animation = '';
+      step.classList.add('active');
+    });
+  }
+}
+
+function onboardFinish() {
+  const overlay = document.getElementById('onboardOverlay');
+  if (!overlay) return;
+  overlay.classList.add('hiding');
+  setTimeout(() => { overlay.style.display = 'none'; overlay.classList.remove('hiding','visible'); }, 380);
+  localStorage.setItem('medterm_onboard_done', '1');
+}
+
+function initOnboarding() {
+  if (localStorage.getItem('medterm_onboard_done')) return;
+  const overlay = document.getElementById('onboardOverlay');
+  if (!overlay) return;
+  overlay.style.display = 'flex';
+  setTimeout(() => overlay.classList.add('visible'), 150);
+}
+
+// ── Image Lightbox Functions ─────────────────────────
+function openImageLightbox(imgSrc, caption, chapterId) {
+  const modal = document.getElementById('imgLightboxModal');
+  const img = document.getElementById('lightboxImage');
+  const cap = document.getElementById('lightboxCaption');
+  
+  img.src = imgSrc;
+  cap.textContent = caption || '';
+  currentZoom = 1;
+  img.style.transform = 'scale(1)';
+  modal.style.display = 'flex';
+  currentLightboxImage = img;
+}
+
+function closeImageLightbox() {
+  document.getElementById('imgLightboxModal').style.display = 'none';
+}
+
+function zoomInImage() {
+  if (!currentLightboxImage) return;
+  currentZoom = Math.min(currentZoom + 0.25, 3);
+  currentLightboxImage.style.transform = `scale(${currentZoom})`;
+}
+
+function zoomOutImage() {
+  if (!currentLightboxImage) return;
+  currentZoom = Math.max(currentZoom - 0.25, 0.5);
+  currentLightboxImage.style.transform = `scale(${currentZoom})`;
+}
+
+function resetImageZoom() {
+  if (!currentLightboxImage) return;
+  currentZoom = 1;
+  currentLightboxImage.style.transform = 'scale(1)';
+}
+
+function downloadCurrentImage() {
+  if (!currentLightboxImage) return;
+  const link = document.createElement('a');
+  link.href = currentLightboxImage.src;
+  link.download = currentLightboxImage.src.split('/').pop();
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  showToast('✅ بدأ التحميل');
+}
+
+function shareCurrentImage() {
+  if (!currentLightboxImage) return;
+  if (navigator.share) {
+    navigator.share({
+      title: 'صورة تشريحية',
+      url: currentLightboxImage.src
+    }).catch(() => showToast('❌ تعذرت المشاركة'));
+  } else {
+    navigator.clipboard.writeText(currentLightboxImage.src);
+    showToast('📋 تم نسخ الرابط');
+  }
+}
+
+// ── Cache Download Manager ───────────────────────────
+function initCacheListener() {
+  if (!navigator.serviceWorker) return;
+  navigator.serviceWorker.addEventListener('message', event => {
+    const d = event.data;
+    if (!d) return;
+
+    if (d.type === 'DOWNLOAD_PROGRESS') {
+      updateDlProgress(d.pct, d.done, d.total, d.label);
+    }
+    if (d.type === 'DOWNLOAD_COMPLETE') {
+      onDlComplete(d);
+    }
+    if (d.type === 'CACHE_STATUS') {
+      onCacheStatus(d);
+    }
+    if (d.type === 'CACHE_CLEARED') {
+      showToast('🗑️ تم مسح التخزين المؤقت');
+      checkCacheStatus();
+    }
+  });
+}
+
+function checkCacheStatus() {
+  if (!navigator.serviceWorker.controller) return;
+  navigator.serviceWorker.controller.postMessage({ type: 'CHECK_CACHE' });
+}
+
+function onCacheStatus(d) {
+  const btn = document.getElementById('downloadCacheBtn');
+  if (!btn) return;
+  if (d.valid) {
+    btn.title = `✅ مخزّن للاستخدام بدون إنترنت · صالح ${d.expiresInDays} يوم`;
+    btn.classList.add('cached');
+    showToast(`✅ الموارد مخزنة — صالحة ${d.expiresInDays} يوم`);
+  } else {
+    btn.classList.remove('cached');
+    if (d.meta) showToast('🔄 انتهت صلاحية التخزين — اضغط ⬇ لتجديده');
+  }
+}
+
+function startCacheDownload() {
+  if (!navigator.onLine) { showToast('📵 تحتاج اتصال بالإنترنت للتحميل'); return; }
+  if (_dlActive) return;
+  if (!navigator.serviceWorker.controller) {
+    showToast('⏳ انتظر لحظة ثم حاول مجدداً');
+    return;
+  }
+  _dlActive = true;
+  openDlModal();
+  navigator.serviceWorker.controller.postMessage({ type: 'DOWNLOAD_ALL' });
+}
+
+function openDlModal() {
+  const overlay = document.getElementById('dlOverlay');
+  if (!overlay) return;
+  overlay.style.display = 'flex';
+  requestAnimationFrame(() => overlay.classList.add('visible'));
+  setDlUI({ pct: 0, done: 0, total: 0, label: 'جاري البدء...' });
+  document.getElementById('dlStats').style.display = 'none';
+  document.getElementById('dlCloseBtn').style.display = 'none';
+  document.getElementById('dlSub').textContent = 'جاري تحميل الملفات...';
+}
+
+function closeDlModal() {
+  const overlay = document.getElementById('dlOverlay');
+  if (!overlay) return;
+  overlay.classList.remove('visible');
+  setTimeout(() => { overlay.style.display = 'none'; }, 350);
+  _dlActive = false;
+}
+
+function setDlUI({ pct, done, total, label }) {
+  const fill  = document.getElementById('dlFill');
+  const pctEl = document.getElementById('dlPct');
+  const cntEl = document.getElementById('dlCount');
+  const curEl = document.getElementById('dlCurrent');
+  if (fill)  fill.style.width = pct + '%';
+  if (pctEl) pctEl.textContent = pct + '%';
+  if (cntEl) cntEl.textContent = total ? `${done} / ${total}` : '';
+  if (curEl) curEl.textContent = label || '';
+}
+
+function updateDlProgress(pct, done, total, label) {
+  setDlUI({ pct, done, total, label });
+}
+
+function onDlComplete(d) {
+  setDlUI({ pct: 100, done: d.total, total: d.total, label: '✅ اكتمل التحميل!' });
+
+  const expiry = new Date(d.expiresAt).toLocaleDateString('ar-SA', { day: 'numeric', month: 'long', year: 'numeric' });
+  document.getElementById('dlSub').textContent = '🎉 تم تحميل جميع الموارد بنجاح!';
+  document.getElementById('dlStatTotal').textContent = d.total + ' ملف';
+  document.getElementById('dlStatExpiry').textContent = expiry;
+  document.getElementById('dlStats').style.display = 'flex';
+  document.getElementById('dlCloseBtn').style.display = 'block';
+
+  const btn = document.getElementById('downloadCacheBtn');
+  if (btn) { btn.classList.add('cached'); btn.title = '✅ مخزّن — صالح 7 أيام'; }
+
+  showToast('✅ تم تحميل كل الموارد! يعمل الآن بدون إنترنت لمدة 7 أيام');
+  _dlActive = false;
+}
+
+function updateDownloadBtn() {
+  const btn = document.getElementById('downloadCacheBtn');
+  if (!btn) return;
+  btn.style.display = navigator.onLine ? 'flex' : 'none';
+}
+
+// ── PWA Installation ────────────────────────────────
+const isIOS = () => /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+const isStandalone = () =>
+  window.matchMedia('(display-mode: standalone)').matches ||
+  window.navigator.standalone === true;
+
+const installBtn = document.getElementById('installApp');
+let deferredPrompt = null;
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  if (!isStandalone()) installBtn.style.display = 'flex';
+  setTimeout(() => {
+    if (deferredPrompt && !isStandalone()) {
+      deferredPrompt.prompt();
+    }
+  }, 3000);
+});
+
+installBtn.addEventListener('click', async () => {
+  if (isIOS()) {
+    openIOSModal();
+    return;
+  }
+  if (!deferredPrompt) {
+    showToast('📲 افتح قائمة المتصفح ← "إضافة إلى الشاشة الرئيسية"');
+    return;
+  }
+  deferredPrompt.prompt();
+  const result = await deferredPrompt.userChoice;
+  if (result.outcome === 'accepted') {
+    showToast('🎉 جاري تثبيت التطبيق...');
+    installBtn.style.display = 'none';
+  }
+  deferredPrompt = null;
+});
+
+window.addEventListener('appinstalled', () => {
+  installBtn.style.display = 'none';
+  deferredPrompt = null;
+  showToast('✅ تم تثبيت MedTerm بنجاح!');
+  localStorage.setItem('pwa_installed', '1');
+});
+
+function openIOSModal() {
+  document.getElementById('iosInstallOverlay').classList.add('visible');
+}
+function closeIOSModal() {
+  document.getElementById('iosInstallOverlay').classList.remove('visible');
+}
+
+document.getElementById('iosInstallOverlay').addEventListener('click', (e) => {
+  if (e.target === document.getElementById('iosInstallOverlay')) closeIOSModal();
+});
+
+// ── Online / Offline ─────────────────────────────────
+function updateOnlineStatus() {
+  const dot = document.getElementById('offlineIndicator');
+  if (dot) dot.style.display = navigator.onLine ? 'none' : 'block';
+  updateDownloadBtn();
+}
+window.addEventListener('online',  () => { updateOnlineStatus(); showToast('✅ اتصل بالإنترنت'); });
+window.addEventListener('offline', () => { updateOnlineStatus(); showToast('📴 وضع بدون إنترنت'); });
+
+// ── Service Worker Registration ──────────────────────
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js', { scope: './' })
+      .then(reg => {
+        _swReg = reg;
+        initCacheListener();
+        navigator.serviceWorker.ready.then(() => {
+          setTimeout(checkCacheStatus, 800);
+          updateDownloadBtn();
+        });
+        reg.addEventListener('updatefound', () => {
+          const nw = reg.installing;
+          nw.addEventListener('statechange', () => {
+            if (nw.state === 'installed' && navigator.serviceWorker.controller)
+              showToast('🔄 تحديث متاح! أعد تحميل الصفحة');
+          });
+        });
+      })
+      .catch(e => console.warn('[SW] Failed:', e));
+  });
+}
+
+// ── Toast ─────────────────────────────────────────────
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast'); if (!t) return;
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ── API Modal ─────────────────────────────────────────
+function openApiModal() {
+  const m = document.getElementById('apiModal');
+  if (m) { m.classList.add('visible'); const i=document.getElementById('apiKeyInput'); if(i&&window.STATE?.apiKey)i.value='[مشفر]'; }
+}
+function closeApiModal() { const m=document.getElementById('apiModal'); if(m)m.classList.remove('visible'); }
+window.openApiModal = openApiModal;
+
+// ── Sidebar Functions ────────────────────────────────
+function openSidebar() {
+  document.getElementById('sideDrawer').classList.add('open');
+  document.getElementById('sidebarOverlay').classList.add('visible');
+  document.body.style.overflow = 'hidden';
+  buildDrawerChapters();
+}
+
+function closeSidebar() {
+  document.getElementById('sideDrawer').classList.remove('open');
+  document.getElementById('sidebarOverlay').classList.remove('visible');
+  document.body.style.overflow = '';
+}
+
+function buildDrawerChapters() {
+  const el = document.getElementById('drawerChaptersList');
+  if (!el || el.children.length > 0 || typeof CHAPTERS === 'undefined') return;
+  el.innerHTML = CHAPTERS.map(ch => `
+    <a href="#" onclick="navigate('chapter-detail',{chapter:${ch.id}});closeSidebar()">
+      <span>${ch.icon}</span> ${ch.title}
+    </a>`).join('');
+}
+
+// ── Keyboard Navigation ──────────────────────────────
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { 
+    closeSidebar(); 
+    closeApiModal(); 
+    if (typeof closeOrganModal === 'function') closeOrganModal(); 
+    closeImageLightbox();
+  }
+});
+
+// ── Initialization ───────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  // تهيئة الأنظمة
+  if (typeof SecuritySystem !== 'undefined') SecuritySystem.init();
+  if (typeof SessionManager !== 'undefined') SessionManager.init();
+  
+  // تهيئة مدير التحميل
+  initCacheListener();
+  updateDownloadBtn();
+  
+  // تهيئة الجولة التعريفية
+  initOnboarding();
+  
+  // تحديث حالة الاتصال
+  updateOnlineStatus();
+  
+  // إخفاء زر التثبيت إذا كان التطبيق مثبتاً
+  if (isStandalone() || localStorage.getItem('pwa_installed')) {
+    installBtn.style.display = 'none';
+    return;
+  }
+  
+  // iOS
+  if (isIOS()) {
+    installBtn.style.display = 'flex';
+    if (!localStorage.getItem('ios_modal_shown')) {
+      setTimeout(() => {
+        openIOSModal();
+        localStorage.setItem('ios_modal_shown', '1');
+      }, 3000);
+    }
+    return;
+  }
+  
+  // Android/Desktop
+  installBtn.style.display = 'flex';
+});
+
+// معالجة أزرار التنقل الخلفي
+window.addEventListener('popstate', () => {
+  const hash = location.hash.replace('#','');
+  if (hash) { 
+    const p = hash.split('/'); 
+    if (typeof navigate === 'function') navigate(p[0], p[1]?{chapter:parseInt(p[1])}:{}); 
+  }
+});
+
+// تصدير الدوال العامة
+window.openSidebar = openSidebar;
+window.closeSidebar = closeSidebar;
+window.openImageLightbox = openImageLightbox;
+window.closeImageLightbox = closeImageLightbox;
+window.zoomInImage = zoomInImage;
+window.zoomOutImage = zoomOutImage;
+window.resetImageZoom = resetImageZoom;
+window.downloadCurrentImage = downloadCurrentImage;
+window.shareCurrentImage = shareCurrentImage;
+window.startCacheDownload = startCacheDownload;
+window.closeDlModal = closeDlModal;
+window.openIOSModal = openIOSModal;
+window.closeIOSModal = closeIOSModal;
+window.openApiModal = openApiModal;
+window.closeApiModal = closeApiModal;
+window.saveApiKey = saveApiKey;
+window.showToast = showToast;
+window.onboardNext = onboardNext;
+window.onboardFinish = onboardFinish;
+</script>
+</body>
+</html>
