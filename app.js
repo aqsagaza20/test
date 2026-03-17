@@ -1,6 +1,7 @@
 // ============================================================
-//  MedTerm App v5.0 – app.js
+//  MedTerm App v6.0 – app.js
 //  Chapter 1 full rich content · Images gallery · Search · Exam · PWA
+//  Offline support · Session management
 // ============================================================
 
 const STATE = {
@@ -511,75 +512,24 @@ function openImageLightbox(src, caption, chapterId) {
     imageSrc = src;
   }
   
-  const modal = document.createElement('div');
-  modal.className = 'img-lightbox-modal';
-  modal.innerHTML = `
-    <div class="lightbox-content">
-      <div class="lightbox-header">
-        <button class="lightbox-close" onclick="this.closest('.img-lightbox-modal').remove()">✕</button>
-        <div class="lightbox-controls">
-          <button onclick="zoomOut(this)">🔍-</button>
-          <button onclick="zoomIn(this)">🔍+</button>
-          <button onclick="resetZoom(this)">⟲</button>
-          <button onclick="downloadImage('${imageSrc}')">⬇️</button>
-          <button onclick="shareImage('${imageSrc}')">📤</button>
-        </div>
-      </div>
-      <div class="lightbox-image-container">
-        <img id="lightboxImage" src="${imageSrc}" alt="${caption}" style="transform:scale(1); transition:transform 0.2s"/>
-      </div>
-      <div class="lightbox-caption">${caption}</div>
-    </div>
-  `;
+  const modal = document.getElementById('imgLightboxModal');
+  const img = document.getElementById('lightboxImage');
+  const cap = document.getElementById('lightboxCaption');
   
-  document.body.appendChild(modal);
+  if (!modal || !img || !cap) return;
   
-  // إضافة دوال التحكم
-  window.zoomIn = (btn) => {
-    const img = document.getElementById('lightboxImage');
-    if (!img) return;
-    const currentScale = parseFloat(img.style.transform.replace('scale(', '').replace(')', '')) || 1;
-    img.style.transform = `scale(${Math.min(currentScale + 0.25, 3)})`;
-  };
-  
-  window.zoomOut = (btn) => {
-    const img = document.getElementById('lightboxImage');
-    if (!img) return;
-    const currentScale = parseFloat(img.style.transform.replace('scale(', '').replace(')', '')) || 1;
-    img.style.transform = `scale(${Math.max(currentScale - 0.25, 0.5)})`;
-  };
-  
-  window.resetZoom = (btn) => {
-    const img = document.getElementById('lightboxImage');
-    if (img) img.style.transform = 'scale(1)';
-  };
-  
-  window.downloadImage = (src) => {
-    const link = document.createElement('a');
-    link.href = src;
-    link.download = src.split('/').pop();
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    showToast('✅ بدأ التحميل');
-  };
-  
-  window.shareImage = (src) => {
-    if (navigator.share) {
-      navigator.share({
-        title: 'صورة تشريحية',
-        url: src
-      }).catch(() => showToast('❌ تعذرت المشاركة'));
-    } else {
-      navigator.clipboard.writeText(src);
-      showToast('📋 تم نسخ الرابط');
-    }
-  };
+  img.src = imageSrc;
+  cap.textContent = caption || '';
+  currentZoom = 1;
+  img.style.transform = 'scale(1)';
+  modal.style.display = 'flex';
+  currentLightboxImage = img;
 }
 
-/**
- * initLazyImages – تحميل الصور عند التمرير
- */
+// دوال التحكم في الصور (معرفة في index.html)
+// هذه الدوال تُستدعى من index.html
+
+// ── initLazyImages – تحميل الصور عند التمرير ──────────────
 function initLazyImages() {
   const imgs = document.querySelectorAll('img.lazy-img[data-src]');
   if (!imgs.length) return;
@@ -1393,7 +1343,7 @@ function buildDrawerChapters() {
 }
 
 // ── TOAST ──────────────────────────────────────────────────
-let toastTimer;
+// toastTimer معرف في index.html، نستخدمه هنا بدون إعادة تعريف
 
 function showToast(msg) {
   const t = document.getElementById('toast');
@@ -1402,8 +1352,8 @@ function showToast(msg) {
   t.textContent = msg;
   t.classList.add('show');
   
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
+  clearTimeout(window.toastTimer);
+  window.toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
 }
 
 // ── API KEY ────────────────────────────────────────────────
@@ -1471,7 +1421,9 @@ window.addEventListener('DOMContentLoaded', () => {
       
       // إغلاق معرض الصور إذا كان مفتوحاً
       const lightbox = document.querySelector('.img-lightbox-modal');
-      if (lightbox) lightbox.remove();
+      if (lightbox && lightbox.style.display === 'flex') {
+        lightbox.style.display = 'none';
+      }
     }
   });
   
@@ -1516,3 +1468,4 @@ window.answerQuiz = answerQuiz;
 window.removeFav = removeFav;
 window.speakAllSentences = speakAllSentences;
 window.openImageLightbox = openImageLightbox;
+window.initLazyImages = initLazyImages;
